@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

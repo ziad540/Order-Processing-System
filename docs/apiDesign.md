@@ -71,7 +71,7 @@
 {
   "isbn": "string",
   "title": "string",
-  "author": "string",
+  "author": "arr[string]",
   "publisher": "string",
   "year": "integer",
   "price": "number",

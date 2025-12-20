@@ -2,7 +2,7 @@
   "name": "order-processing-system",
   "version": "1.0.0",
   "description": "",
-  "main": "./server",
+  "main": "index.js",
   "directories": {
     "doc": "docs"
   },
