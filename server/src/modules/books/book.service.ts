@@ -55,6 +55,9 @@ export const listAllBooks = (db: DataStore) => {
       console.log(
         `[BookService] Handling listAllBooks request. Page: ${page}, Limit: ${limit}`
       );
+      console.log(
+        `[BookService] Type of limit: ${typeof limitNumber}, Type of offset: ${typeof offsetNumber}`
+      );
 
       const { books, total } = await db.listAllBooks({
         limit: limitNumber,
@@ -79,6 +82,51 @@ export const listAllBooks = (db: DataStore) => {
           hasPrevPage: currentPage > 1,
         },
       });
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+export const getBookByISBN = (db: DataStore) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { isbn: ISBN } = req.params;
+
+      console.log(req.params);
+      if (!ISBN) {
+        return res.status(400).json({ message: "ISBN parameter is required" });
+      }
+      const book = await db.getBookByISBN(ISBN);
+
+      if (!book) {
+        return res.status(404).json({ message: "Book not found" });
+      }
+
+      res.status(200).json({ message: "Book retrieved successfully", book });
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+export const updateBookByISBN = (db: DataStore) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { isbn: ISBN } = req.params;
+      if (!ISBN) {
+        return res.status(400).json({ message: "ISBN parameter is required" });
+      }
+
+
+
+      const book = await db.updateBookByISBN(ISBN);
+
+      if (!book) {
+        return res.status(404).json({ message: "Book not found" });
+      }
+
+      res.status(200).json({ message: "Book retrieved successfully", book });
     } catch (error) {
       next(error);
     }
