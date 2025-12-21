@@ -6,6 +6,7 @@ export interface Book {
     sellingPrice: number;
     category: string;
     stockLevel: number;
+    threshold?: number;
 }
 
 

@@ -1,26 +1,39 @@
-import pg from 'pg';
+import mysql from 'mysql2/promise';
 import { bookDao } from "./DAO/bookDao.js";
-
-const { Pool } = pg;
+import { Mysql } from "./mysql.js"; // Import Mysql class
 
 export interface DataStore extends bookDao {
   
 }
 
+
+
+
 export let db: DataStore;
-export let pool: pg.Pool;
+export let pool: mysql.Pool;
 
 export async function initDb() {
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL, 
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined
-  });
+  if (process.env.DATABASE_URL) {
+    pool = mysql.createPool(process.env.DATABASE_URL);
+  } else {
+    pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    });
+  }
 
   try {
-    await pool.connect();
-    console.log('Connected to Postgres');
+    const connection = await pool.getConnection(); 
+    console.log('Connected to MySQL');
+    connection.release();
+    db = new Mysql(); // Initialize db
   } catch (err) {
-    console.error('Failed to connect to Postgres', err);
+    console.error('Failed to connect to MySQL', err);
     throw err;
   }
 }
