@@ -3,22 +3,41 @@ import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export class Mysql implements DataStore {
+  async updateBookByISBN(ISBN: string): Promise<Book | null> {
+    const [rows]=await pool.execute<RowDataPacket[]>(
+      "SELECT * FROM books WHERE ISBN = ?",
+      [ISBN]
+    );
+    if (rows.length === 0) return null;
+    return rows[0] as Book;
+    
+  }
+  async getBookByISBN(ISBN: string): Promise<Book | null> {
+    const [rows]=await pool.execute<RowDataPacket[]>(
+      "SELECT * FROM books WHERE ISBN = ?",
+      [ISBN]
+    );
+    if (rows.length === 0) return null;
+    return rows[0] as Book;
+  }
   async listAllBooks({
     limit,
     offset,
   }: {
-    limit: number;
-    offset: number;
+    limit: number | string;
+    offset: number | string;
   }): Promise<{ books: Book[]; total: number }> {
+    const finalLimit = Number(limit); 
+    const finalOffset = Number(offset);
     console.log(
-      `[Mysql] listAllBooks called with limit: ${limit}, offset: ${offset}`
+      `[Mysql] listAllBooks called with limit: ${finalLimit}, offset: ${finalOffset}`
     );
     return new Promise(async (resolve, reject) => {
       try {
         const [rowsResult, countResult] = await Promise.all([
           pool.query<RowDataPacket[]>(
-            "SELECT id, title, authors, sellingPrice, category, stockLevel, publicationYear, ISBN FROM books LIMIT ? OFFSET ?",
-            [limit, offset]
+            "SELECT title,Author,sellingPrice,category,Pub_Year  FROM books LIMIT ? OFFSET ?",
+            [finalLimit, finalOffset]
           ),
           pool.query<RowDataPacket[]>("SELECT COUNT(*) as total FROM books"),
         ]);
@@ -35,15 +54,6 @@ export class Mysql implements DataStore {
         reject(error);
       }
     });
-  }
-
-  async getBookById(id: number): Promise<Book | null> {
-    const [rows] = await pool.execute<RowDataPacket[]>(
-      "SELECT * FROM books WHERE id = ?",
-      [id]
-    );
-    if (rows.length === 0) return null;
-    return rows[0] as Book;
   }
 
   async createNEWBook(book: Book): Promise<Book> {
