@@ -2,6 +2,7 @@ import express from "express";
 import "dotenv/config";
 import { db, initDb } from "./dataStore/index.js";
 import { bookController } from "./modules/books/book.controller.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 
 
@@ -15,10 +16,7 @@ import { bookController } from "./modules/books/book.controller.js";
 
   //  http://localhost:3000/books/create
   // error handling middleware
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!' });
-  });
+  app.use(errorHandler);
 
  
 
