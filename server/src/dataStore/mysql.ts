@@ -3,21 +3,83 @@ import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export class Mysql implements DataStore {
-  async getBookByTitle(Title: string): Promise<Book | null> {
-    const [rows] = await pool.execute<RowDataPacket[]>(
-      "SELECT * FROM books WHERE title = ?",
-      [Title]
+  async filterBookByCategory(
+    category: string[],
+    pagination: { limit: number; offset: number }
+  ): Promise<{ books: Book[]; total: number }> {
+    const finalLimit = Number(pagination.limit);
+    const finalOffset = Number(pagination.offset);
+
+    const placeholders = category.map(() => "?").join(", ");
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT * FROM books WHERE category IN (${placeholders}) LIMIT ? OFFSET ?`,
+      [...category, finalLimit, finalOffset]
     );
-    if (rows.length === 0) return null;
-    return rows as any as Book;
+    const [countResult] = await pool.execute<RowDataPacket[]>(
+      `SELECT COUNT(*) as total FROM books WHERE category IN (${placeholders})`,
+      [...category]
+    );
+    const total = countResult[0].total;
+    const books = rows as any as Book[];
+
+    return { books, total };
   }
-  async updateBookByISBN(ISBN: string): Promise<Book | null> {
-    const [rows] = await pool.execute<RowDataPacket[]>(
-      "SELECT * FROM books WHERE ISBN = ?",
-      [ISBN]
+  async getBookByTitle(
+    Title: string,
+    { limit, offset }: { limit: number; offset: number }
+  ): Promise<{ books: Book[]; total: number }> {
+    const finalLimit = Number(limit);
+    const finalOffset = Number(offset);
+
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "SELECT * FROM books WHERE title LIKE ? LIMIT ? OFFSET ?",
+      [`%${Title}%`, finalLimit, finalOffset]
     );
-    if (rows.length === 0) return null;
-    return rows[0] as Book;
+
+    const [countResult] = await pool.execute<RowDataPacket[]>(
+      "SELECT COUNT(*) as total FROM books WHERE title LIKE ?",
+      [`%${Title}%`]
+    );
+
+    const total = countResult[0].total;
+    const books = rows as any as Book[];
+
+    return { books, total };
+  }
+  async updateBookByISBN(
+    ISBN: string,
+    updates: { sellingPrice?: number; stockLevel?: number; threshold?: number }
+  ): Promise<string | null> {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (updates.sellingPrice !== undefined) {
+      fields.push("sellingPrice = ?");
+      values.push(updates.sellingPrice);
+    }
+    if (updates.stockLevel !== undefined) {
+      fields.push("stockLevel = ?");
+      values.push(updates.stockLevel);
+    }
+    if (updates.threshold !== undefined) {
+      fields.push("threshold = ?");
+      values.push(updates.threshold);
+    }
+
+    if (fields.length === 0) {
+      return "No updates provided";
+    }
+
+    values.push(ISBN);
+
+    const [result] = await pool.execute<ResultSetHeader>(
+      `UPDATE books SET ${fields.join(", ")} WHERE ISBN = ?`,
+      values
+    );
+
+    if (result.affectedRows === 0) return null;
+
+    return "Book updated successfully";
   }
   async getBookByISBN(ISBN: string): Promise<Book | null> {
     const [rows] = await pool.execute<RowDataPacket[]>(
