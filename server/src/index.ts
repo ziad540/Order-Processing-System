@@ -7,7 +7,7 @@ import { bookController } from "./modules/books/book.controller.js";
 
 (async () => {
   await initDb();
-  const app = express();
+  const app = express(); // 3SHAN NPARSE EL JSON 
   app.use(express.json());
   console.log("Database initialized");
 
