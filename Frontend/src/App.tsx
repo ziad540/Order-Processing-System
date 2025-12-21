@@ -1,35 +1,25 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import Alert from "./Components/Alert";
+import Button from "./Components/Button";
+import DismissableAlert from "./Components/DismissableAlert";
+import ListGroup from "./Components/ListGroup/ListGroup";
 
 function App() {
-  const [count, setCount] = useState(0)
+  let items = ["Science", "Art", "Religion", "History", "Geography"];
+
+  const handleSelectItem = (item: string) => {
+    console.log(item);
+  };
+
+  const [alertVisible, setAlertVisiblity] = useState(false)
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div>
+      <ListGroup items={items} heading="Categories" onSelectItem={handleSelectItem} />
+      {alertVisible && <DismissableAlert onClose={() => setAlertVisiblity(false)}>Alert</DismissableAlert>}
+      <Button onClick={() => setAlertVisiblity(true)}> Select </Button>
+    </div>
+  );
 }
 
-export default App
+export default App;
