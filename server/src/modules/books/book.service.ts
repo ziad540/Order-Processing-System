@@ -110,6 +110,28 @@ export const getBookByISBN = (db: DataStore) => {
   };
 };
 
+export const getBookByTitle = (db: DataStore) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { title: Title } = req.body;
+
+      console.log(req.body);
+      if (!Title) {
+        return res.status(400).json({ message: "Title parameter is required" });
+      }
+      const book = await db.getBookByTitle(Title);
+
+      if (!book) {
+        return res.status(404).json({ message: "Book not found" });
+      }
+
+      res.status(200).json({ message: "Book(s) retrieved successfully", book });
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
 export const updateBookByISBN = (db: DataStore) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {

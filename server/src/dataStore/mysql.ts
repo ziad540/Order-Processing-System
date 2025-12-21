@@ -3,17 +3,24 @@ import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export class Mysql implements DataStore {
+  async getBookByTitle(Title: string): Promise<Book | null> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      "SELECT * FROM books WHERE title = ?",
+      [Title]
+    );
+    if (rows.length === 0) return null;
+    return rows as any as Book;
+  }
   async updateBookByISBN(ISBN: string): Promise<Book | null> {
-    const [rows]=await pool.execute<RowDataPacket[]>(
+    const [rows] = await pool.execute<RowDataPacket[]>(
       "SELECT * FROM books WHERE ISBN = ?",
       [ISBN]
     );
     if (rows.length === 0) return null;
     return rows[0] as Book;
-    
   }
   async getBookByISBN(ISBN: string): Promise<Book | null> {
-    const [rows]=await pool.execute<RowDataPacket[]>(
+    const [rows] = await pool.execute<RowDataPacket[]>(
       "SELECT * FROM books WHERE ISBN = ?",
       [ISBN]
     );
@@ -27,7 +34,7 @@ export class Mysql implements DataStore {
     limit: number | string;
     offset: number | string;
   }): Promise<{ books: Book[]; total: number }> {
-    const finalLimit = Number(limit); 
+    const finalLimit = Number(limit);
     const finalOffset = Number(offset);
     console.log(
       `[Mysql] listAllBooks called with limit: ${finalLimit}, offset: ${finalOffset}`
