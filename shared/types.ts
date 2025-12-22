@@ -10,4 +10,41 @@ export interface Book {
 }
 
 
+export  interface User {
+  id: number;
+  username: string;
+  email: string;
+  phones: string[];
+}
 
+
+export interface Customer extends User 
+{
+  shippingAddress: string;
+  FirstName: string;
+  LastName: string;
+    
+}
+
+export interface Admin extends User
+{
+
+}
+
+
+export interface UserSignupDetails {
+  username: string;
+  email: string;
+  password: string;
+  phones: string[];
+}
+
+export interface CustomerSignupDetails  {
+  firstName: string;
+  lastName: string;
+  shippingAddress: string;
+}
+
+export interface AdminSignupDetails  {
+  // add admin-specific fields later if needed
+}
