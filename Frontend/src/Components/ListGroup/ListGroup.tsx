@@ -1,5 +1,4 @@
 import { useState } from "react";
-import styles from "./ListGroup.module.css";
 
 interface Props {
   items: string[];
@@ -17,10 +16,7 @@ function ListGroup({ items, heading, onSelectItem }: Props) {
     return items.length === 0 && <p>No item found</p>;
   };
 
-  // Event Handler
-  const handleClick = () => {
-    () => console.log("Clicked");
-  };
+
 
   return (
     <>

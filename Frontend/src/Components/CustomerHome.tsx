@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ShoppingCart, AlertCircle, CheckCircle } from 'lucide-react';
 import CustomerNavbar from './CustomerNavbar';
 import { User, Book, CartItem } from '../App';
-import { mockBooks } from '../data/mockData';
+import { bookService } from '../services/bookService';
 
 interface CustomerHomeProps {
   user: User;
@@ -15,21 +15,27 @@ interface CustomerHomeProps {
 export default function CustomerHome({ user, onLogout, addToCart, cart }: CustomerHomeProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [books] = useState<Book[]>(mockBooks);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const categories = ['All', 'Science', 'Art', 'Religion', 'History', 'Geography'];
 
-  const filteredBooks = books.filter(book => {
-    const matchesSearch = 
-      book.isbn.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.authors.some(author => author.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      book.publisher.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'All' || book.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  useEffect(() => {
+    const fetchBooks = async () => {
+      setIsLoading(true);
+      try {
+        const results = await bookService.searchBooks(searchTerm, selectedCategory);
+        setBooks(results);
+      } catch (error) {
+        console.error('Failed to fetch books:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchBooks, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm, selectedCategory]);
 
   const handleAddToCart = (book: Book) => {
     addToCart(book);
@@ -38,7 +44,7 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
-      
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -68,11 +74,10 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                selectedCategory === category
+              className={`px-4 py-2 rounded-lg transition-colors ${selectedCategory === category
                   ? 'bg-indigo-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-indigo-600 hover:text-indigo-600'
-              }`}
+                }`}
             >
               {category}
             </button>
@@ -82,13 +87,14 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
         {/* Results Count */}
         <div className="mb-6">
           <p className="text-gray-700">
-            Showing {filteredBooks.length} {filteredBooks.length === 1 ? 'book' : 'books'}
+            Showing {books.length} {books.length === 1 ? 'book' : 'books'}
+            {isLoading && <span className="ml-2 text-indigo-600">Loading...</span>}
           </p>
         </div>
 
         {/* Books Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredBooks.map(book => (
+          {books.map(book => (
             <div key={book.isbn} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
               {/* Book Cover */}
               <Link to={`/customer/book/${book.isbn}`}>
@@ -108,13 +114,13 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
                     {book.title}
                   </h3>
                 </Link>
-                
+
                 <p className="text-gray-600 mb-1 line-clamp-1">
                   {book.authors.join(', ')}
                 </p>
-                
+
                 <p className="text-gray-500 mb-2">{book.publisher}</p>
-                
+
                 <div className="flex items-center justify-between mb-3">
                   <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">
                     {book.category}
@@ -143,11 +149,10 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
                   <button
                     onClick={() => handleAddToCart(book)}
                     disabled={book.quantity === 0}
-                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
-                      book.quantity > 0
+                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${book.quantity > 0
                         ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
                     <span>Add to Cart</span>
@@ -159,7 +164,7 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
         </div>
 
         {/* No Results */}
-        {filteredBooks.length === 0 && (
+        {!isLoading && books.length === 0 && (
           <div className="text-center py-12">
             <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-gray-900 mb-2">No books found</h3>
