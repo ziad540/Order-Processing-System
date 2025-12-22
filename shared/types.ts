@@ -9,5 +9,11 @@ export interface Book {
     threshold?: number;
 }
 
+export interface BookFilter {
+    title?: string;
+    category?: string[];
+    author?: string;
+}
+
 
 
