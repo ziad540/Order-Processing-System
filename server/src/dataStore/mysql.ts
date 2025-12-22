@@ -1,44 +1,50 @@
 import { Book } from "../../../shared/types.js";
 import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
+import { BookFilter } from "../../../shared/types.js";
 
 export class Mysql implements DataStore {
-  async filterBookByCategory(
-    category: string[],
+  async searchBook(
+    filter: BookFilter,
     pagination: { limit: number; offset: number }
   ): Promise<{ books: Book[]; total: number }> {
     const finalLimit = Number(pagination.limit);
     const finalOffset = Number(pagination.offset);
 
-    const placeholders = category.map(() => "?").join(", ");
+    let query = "SELECT * FROM books WHERE 1=1";
+    let countQuery = "SELECT COUNT(*) as total FROM books WHERE 1=1";
+    const params: any[] = [];
+
+    if (filter.title) {
+      query += " AND title LIKE ?";
+      countQuery += " AND title LIKE ?";
+      params.push(`%${filter.title}%`);
+    }
+
+    if (filter.category && filter.category.length > 0) {
+      const placeholders = filter.category.map(() => "?").join(", ");
+      query += ` AND category IN (${placeholders})`;
+      countQuery += ` AND category IN (${placeholders})`;
+      params.push(...filter.category);
+    }
+
+    if (filter.author) {
+     
+      query += " AND Author LIKE ?";
+      countQuery += " AND Author LIKE ?";
+      params.push(`%${filter.author}%`);
+    }
+
+    console.log(`[Mysql] searchBook query: ${query}`);
+
     const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT * FROM books WHERE category IN (${placeholders}) LIMIT ? OFFSET ?`,
-      [...category, finalLimit, finalOffset]
-    );
-    const [countResult] = await pool.execute<RowDataPacket[]>(
-      `SELECT COUNT(*) as total FROM books WHERE category IN (${placeholders})`,
-      [...category]
-    );
-    const total = countResult[0].total;
-    const books = rows as any as Book[];
-
-    return { books, total };
-  }
-  async getBookByTitle(
-    Title: string,
-    { limit, offset }: { limit: number; offset: number }
-  ): Promise<{ books: Book[]; total: number }> {
-    const finalLimit = Number(limit);
-    const finalOffset = Number(offset);
-
-    const [rows] = await pool.query<RowDataPacket[]>(
-      "SELECT * FROM books WHERE title LIKE ? LIMIT ? OFFSET ?",
-      [`%${Title}%`, finalLimit, finalOffset]
+      query + " LIMIT ? OFFSET ?",
+      [...params, finalLimit, finalOffset]
     );
 
     const [countResult] = await pool.execute<RowDataPacket[]>(
-      "SELECT COUNT(*) as total FROM books WHERE title LIKE ?",
-      [`%${Title}%`]
+      countQuery,
+      params
     );
 
     const total = countResult[0].total;
