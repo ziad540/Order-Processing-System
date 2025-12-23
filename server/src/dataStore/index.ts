@@ -4,8 +4,10 @@ import { Mysql } from "./mysql.js"; // Import Mysql class
 import { CustomerDao } from './DAO/customerDao.js';
 import { UserDao } from './DAO/userDao.js';
 import { adminDao } from './DAO/adminDao.js';
+import { ShoppingCartDao } from './DAO/shoppingCartDao.js';
+import { CartItemDao } from './DAO/cartItemDao.js';
 
-export interface DataStore extends bookDao , CustomerDao, UserDao, adminDao {
+export interface DataStore extends bookDao , CustomerDao, UserDao, adminDao , ShoppingCartDao, CartItemDao {
 
   
 }

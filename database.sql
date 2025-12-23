@@ -83,7 +83,7 @@ CREATE TABLE CreditCards
 
 CREATE TABLE ShoppingCarts
 (
-    CartID INT PRIMARY KEY,
+    CartID INT PRIMARY KEY auto_increment,
     UserID INT UNIQUE NOT NULL,
     CONSTRAINT fk_cart_owner FOREIGN KEY (UserID) REFERENCES Customers (UserID)
 );

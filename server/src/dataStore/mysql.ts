@@ -1,11 +1,91 @@
-import { Book } from "../../../shared/types.js";
+import { Book, CartItem, ShoppingCart } from "../../../shared/types.js";
 import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { User } from "../../../shared/types.js";
 import { Customer } from "../../../shared/types.js";
 import { Admin } from "../../../shared/types.js";
 
+
+
 export class Mysql implements DataStore {
+  async getCartByUserId(userId: number): Promise<ShoppingCart | null> {
+
+  const [cartRows] = await pool.execute<RowDataPacket[]>(
+    `
+    SELECT CartID
+    FROM ShoppingCarts
+    WHERE UserID = ?
+    `,
+    [userId]
+  );
+
+  if (cartRows.length === 0) return null;
+
+  const cartId = cartRows[0].CartID;
+
+  const [itemRows] = await pool.execute<RowDataPacket[]>(
+    `
+    SELECT
+      ci.Quantity,
+      b.ISBN,
+      b.Title,
+      b.Authors,
+      b.SellingPrice,
+      b.Category
+    FROM CartItems ci
+    JOIN Books b ON ci.ISBN = b.ISBN
+    WHERE ci.CartID = ?
+    `,
+    [cartId]
+  );
+
+  const items: CartItem[] = itemRows.map(row => ({
+    quantity: row.Quantity,
+    book: {
+      ISBN: row.ISBN,
+      title: row.Title,
+      authors: row.Authors ? JSON.parse(row.Authors) : undefined,
+      sellingPrice: row.SellingPrice,
+      category: row.Category
+    }
+  }));
+
+  return {
+    cartId,
+    userId,
+    items
+  };
+}
+
+    createCartForUser(userId: number): Promise<ShoppingCart> {
+
+        
+
+    }
+    addItemToCart(userId: number, isbn: string, quantity: number): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    removeItemFromCart(userId: number, isbn: string): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    updateItemQuantity(userId: number, isbn: string, quantity: number): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    clearCart(userId: number): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    getCartItemByCartIdAndIsbn(cartId: number, isbn: string): Promise<CartItem | null> {
+        throw new Error("Method not implemented.");
+    }
+    createCartItem(cartId: number, isbn: string, quantity: number): Promise<CartItem> {
+        throw new Error("Method not implemented.");
+    }
+    updateCartItemQuantity(cartId: number, isbn: string, quantity: number): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    deleteCartItem(cartId: number, isbn: string): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
 
 
     private async getCustomerCoreByUserId(userId: number) {

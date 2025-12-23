@@ -36,9 +36,14 @@ export interface Admin extends User
 
 
 export interface CartItem {
-  cartId: number;
-  isbn: string;
   quantity: number;
+  book: {
+    ISBN: string;
+    title: string;
+    authors?: string[];
+    sellingPrice: number;
+    category: string;
+  };
 }
 
 export interface ShoppingCart {
