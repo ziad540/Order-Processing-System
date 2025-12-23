@@ -1,14 +1,17 @@
 import { Customer } from "../../../../shared/types.js";
-import {CustomerSignupDetails } from "../../../../shared/types.js";
 
 
 export interface CustomerDao {
-  getById(userId: number): Promise<Customer | null>;
-    getByUsername(username: string): Promise<Customer | null>;
-    getByEmail(email: string): Promise<Customer | null>;
+  getCustomerById(userId: number): Promise<Customer | null>;
+    getCustomerByUsername(username: string): Promise<Customer | null>;
+    getCustomerByEmail(email: string): Promise<Customer | null>;
 
   createCustomer(
-    userId: number,
-    input: CustomerSignupDetails
+    UserID: number,
+input: {
+        ShippingAddress: string;
+        FirstName: string;
+        LastName: string;
+}
   ): Promise<Customer>;
 }

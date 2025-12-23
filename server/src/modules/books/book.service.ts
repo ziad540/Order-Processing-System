@@ -20,7 +20,7 @@ export const createBook = (db: DataStore) => {
                 authors,
                 publicationYear,
                 sellingPrice,
-                category,
+                 category,
                 stockLevel,
                 threshold
             };

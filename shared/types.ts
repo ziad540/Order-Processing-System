@@ -11,16 +11,17 @@ export interface Book {
 
 
 export  interface User {
-  id: number;
-  username: string;
+  UserID: number;
+  Username: string;
   email: string;
   phones: string[];
+  Password: string;
 }
 
 
 export interface Customer extends User 
 {
-  shippingAddress: string;
+  ShippingAddress: string;
   FirstName: string;
   LastName: string;
     
@@ -29,22 +30,24 @@ export interface Customer extends User
 export interface Admin extends User
 {
 
+
+  
 }
 
 
-export interface UserSignupDetails {
-  username: string;
-  email: string;
-  password: string;
-  phones: string[];
+export interface CartItem {
+  cartId: number;
+  isbn: string;
+  quantity: number;
 }
 
-export interface CustomerSignupDetails  {
-  firstName: string;
-  lastName: string;
-  shippingAddress: string;
+export interface ShoppingCart {
+  cartId: number;
+  userId: number;
+  items: CartItem[];
 }
 
-export interface AdminSignupDetails  {
-  // add admin-specific fields later if needed
-}
+
+
+
+

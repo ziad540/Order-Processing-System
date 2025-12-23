@@ -2,7 +2,7 @@ import express from "express";
 import "dotenv/config";
 import { db, initDb } from "./dataStore/index.js";
 import { bookController } from "./modules/books/book.controller.js";
-
+import { customerController } from "./modules/Customers/customer.controller.js";
 
 
 (async () => {
@@ -12,6 +12,7 @@ import { bookController } from "./modules/books/book.controller.js";
   console.log("Database initialized");
 
   app.use('/books', bookController(db));
+  app.use('/customers', customerController(db));
 
   //  http://localhost:3000/books/create
   // error handling middleware
