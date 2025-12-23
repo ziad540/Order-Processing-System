@@ -48,7 +48,7 @@ export interface CartItem {
 
 export interface ShoppingCart {
   cartId: number;
-  userId: number;
+  UserID: number;
   items: CartItem[];
 }
 

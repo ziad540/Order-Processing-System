@@ -8,7 +8,7 @@ import { Admin } from "../../../shared/types.js";
 
 
 export class Mysql implements DataStore {
-  async getCartByUserId(userId: number): Promise<ShoppingCart | null> {
+  async getCartByUserId(UserID: number): Promise<ShoppingCart | null> {
 
   const [cartRows] = await pool.execute<RowDataPacket[]>(
     `
@@ -16,7 +16,7 @@ export class Mysql implements DataStore {
     FROM ShoppingCarts
     WHERE UserID = ?
     `,
-    [userId]
+    [UserID]
   );
 
   if (cartRows.length === 0) return null;
@@ -52,14 +52,37 @@ export class Mysql implements DataStore {
 
   return {
     cartId,
-    userId,
+    UserID,
     items
   };
 }
 
-    createCartForUser(userId: number): Promise<ShoppingCart> {
+   async createCartForUser(UserID: number): Promise<ShoppingCart> {
+
 
         
+    const cart = await this.getCartByUserId(UserID);
+  
+    if (cart) throw new Error("cart already exists for this user");
+
+
+    const [result] =await pool.execute<ResultSetHeader>(
+      'INSERT INTO ShoppingCarts (UserID) VALUES (?)',
+      [UserID]
+    );
+
+    return {
+        cartId: result.insertId,
+        UserID,
+        items: []
+    
+
+    };
+
+
+
+
+
 
     }
     addItemToCart(userId: number, isbn: string, quantity: number): Promise<void> {
