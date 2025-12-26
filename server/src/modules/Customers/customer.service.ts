@@ -3,6 +3,8 @@ import { User } from "../../../../shared/types.js";
 import { Customer } from "../../../../shared/types.js";
 import { hashPassword, verifyPassword }  from  "../../../utils/passwordUtils.js";
 import { NextFunction, Request, Response } from "express";
+import{ CartItem } from "../../../../shared/types.js";
+import { ShoppingCart } from "../../../../shared/types.js";
 
 
 
@@ -33,8 +35,12 @@ export const SignUp = (db: DataStore) => async (req :Request , res:Response,  ne
 
         const createdCustomer= await  db.createCustomer(user_ID,{ ShippingAddress, FirstName ,LastName } )
 
+        const createdcart:ShoppingCart = await db.createCartForUser(user_ID);
 
-      res.status(200).json({ message: "Sign-up successful", createdCustomer  });
+
+
+
+      res.status(200).json({ message: "Sign-up successful", createdCustomer , createdcart  });
 
 
     

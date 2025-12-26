@@ -8,6 +8,129 @@ import { Admin } from "../../../shared/types.js";
 
 
 export class Mysql implements DataStore {
+  async plusoneItemQuantity(userId: number, isbn: string): Promise<void> {
+
+
+    const shoppingCartId =await this.getCartIdByUserId(userId);
+    if (!shoppingCartId) {
+      throw new Error("Shopping cart not found for user");
+    }
+    const isbnExists = await this.getCartItemByCartIdAndIsbn(shoppingCartId, isbn);
+    if (!isbnExists) {
+      throw new Error("ISBN not found in cart");
+    }
+    const [result] = await pool.execute<ResultSetHeader>(
+      'UPDATE CartItems SET Quantity = Quantity + 1 WHERE CartID = ? AND ISBN = ?',
+      [shoppingCartId, isbn]
+    );
+
+    if (result.affectedRows === 0) {
+      throw new Error("Cart item not found");
+    }
+    return;
+
+
+   
+
+  }
+  async minusoneItemQuantity(userId: number, isbn: string): Promise<void> {
+    const shoppingCartId =await this.getCartIdByUserId(userId);
+    if (!shoppingCartId) {
+      throw new Error("Shopping cart not found for user");
+    }
+    const isbnExists = await this.getCartItemByCartIdAndIsbn(shoppingCartId, isbn);
+    if (!isbnExists) {
+      throw new Error("ISBN not found in cart");
+    }
+    const [result] = await pool.execute<ResultSetHeader>(
+      'UPDATE CartItems SET Quantity = Quantity - 1 WHERE CartID = ? AND ISBN = ? AND Quantity > 0',
+      [shoppingCartId, isbn]
+    );
+    if (result.affectedRows === 0) {
+      throw new Error("Cart item not found or quantity is already zero");
+    }
+    return;
+
+  }
+  async getCartItemByUserIdAndIsbn(userId: number, isbn: string): Promise<CartItem | null> {
+
+    const cartIdPromise =await this.getCartIdByUserId(userId);
+    
+    if (!cartIdPromise) {
+      throw new Error("Shopping cart not found for user");
+    }
+    return this.getCartItemByCartIdAndIsbn(cartIdPromise, isbn);
+
+    
+
+  }
+  async getallCartItems(userId: number): Promise<CartItem[]> {
+
+  const cartIdPromise =await this.getCartIdByUserId(userId);
+  
+  if (!cartIdPromise) {
+    throw new Error("Shopping cart not found for user");
+  }
+
+
+    const rows = await pool.execute<RowDataPacket[]>(
+
+      `
+      SELECT ci.Quantity, b.ISBN, b.Title, b.Authors, b.SellingPrice, b.Category
+      FROM CartItems ci
+      JOIN Books b ON ci.ISBN = b.ISBN
+      WHERE ci.CartID = ?
+      `,
+      [cartIdPromise]
+    );
+    const items: CartItem[] = rows[0].map(row => ({
+      quantity: row.Quantity,
+      book: {
+        ISBN: row.ISBN,
+        title: row.Title,
+        authors: row.Authors ? JSON.parse(row.Authors) : undefined,
+        sellingPrice: row.SellingPrice,
+        category: row.Category
+      }
+    }));
+
+    return items;
+  }
+
+
+
+ async getCartItemQuantity(cartId: number, isbn: string): Promise<number | null> {
+
+    const rows = await pool.execute<RowDataPacket[]>(
+      `
+      SELECT Quantity
+      FROM CartItems
+      WHERE CartID = ? AND ISBN = ?
+      `,
+      [cartId, isbn]
+    );
+
+    if (rows[0].length === 0) return null;
+
+    return rows[0][0].Quantity;
+  }
+  async getCartIdByUserId(userId: number): Promise<number | null> {
+
+    const rows = await pool.execute<RowDataPacket[]>(
+      `
+      SELECT CartID
+      FROM ShoppingCarts
+      WHERE UserID = ?
+      `,
+      [userId]
+    );
+
+    if (rows[0].length === 0) return null;
+
+    return rows[0][0].CartID;
+
+
+  }
   async getCartByUserId(UserID: number): Promise<ShoppingCart | null> {
 
   const [cartRows] = await pool.execute<RowDataPacket[]>(
@@ -55,10 +178,13 @@ export class Mysql implements DataStore {
     UserID,
     items
   };
+
+
 }
 
-   async createCartForUser(UserID: number): Promise<ShoppingCart> {
 
+
+   async createCartForUser(UserID: number): Promise<ShoppingCart> {
 
         
     const cart = await this.getCartByUserId(UserID);
@@ -85,30 +211,106 @@ export class Mysql implements DataStore {
 
 
     }
-    addItemToCart(userId: number, isbn: string, quantity: number): Promise<void> {
-        throw new Error("Method not implemented.");
+
+
+   async addItemToCart(userId: number, isbn: string, quantity: number): Promise<void> {
+
+      const shoppingCartId = this.getCartIdByUserId(userId);
+      if (!shoppingCartId) {
+
+        throw new Error("Shopping cart not found for user");
+      }
+
+        const result =await pool.execute<ResultSetHeader>(
+            'INSERT INTO CartItems (CartID, ISBN, Quantity) VALUES (?, ?, ?)',
+            [shoppingCartId, isbn, quantity]
+        );
+       
+        return;
+
     }
-    removeItemFromCart(userId: number, isbn: string): Promise<void> {
-        throw new Error("Method not implemented.");
+   async removeItemFromCart(userId: number, isbn: string): Promise<void> {
+
+        const shoppingCartId = this.getCartIdByUserId(userId);
+        if (!shoppingCartId) {
+            throw new Error("Shopping cart not found for user");
+        }
+        const result = await pool.execute<ResultSetHeader>(
+            'DELETE FROM CartItems WHERE CartID = ? AND ISBN = ?',
+            [shoppingCartId, isbn]
+        );
+        return;
+
+  }
+   async updateItemQuantity(userId: number, isbn: string, quantity: number): Promise<void> {
+        const shoppingCartId = this.getCartIdByUserId(userId);
+        if (!shoppingCartId) {
+            throw new Error("Shopping cart not found for user");
+        }
+        const result = await pool.execute<ResultSetHeader>(
+            'UPDATE CartItems SET Quantity = ? WHERE CartID = ? AND ISBN = ?',
+            [quantity, shoppingCartId, isbn]
+        );
+        return;
+
+  }
+   async clearCart(userId: number): Promise<void> {
+     
+        const shoppingCartId = this.getCartIdByUserId(userId);
+        if (!shoppingCartId) {
+            throw new Error("Shopping cart not found for user");
+        }
+        const result = await pool.execute<ResultSetHeader>(
+            'DELETE FROM CartItems WHERE CartID = ?',
+            [shoppingCartId]
+        );
+        return;
+  }
+    async getCartItemByCartIdAndIsbn(cartId: number, isbn: string): Promise<CartItem | null> {
+        const [rows] = await pool.execute<RowDataPacket[]>(
+            'SELECT ci.Quantity, b.ISBN, b.Title, b.Authors, b.SellingPrice, b.Category FROM CartItems ci JOIN Books b ON ci.ISBN = b.ISBN WHERE ci.CartID = ? AND ci.ISBN = ?',
+            [cartId, isbn]
+        );
+        if (rows.length === 0) return null;
+        const row = rows[0];
+        return {
+            quantity: row.Quantity,
+            book: {
+                ISBN: row.ISBN,
+                title: row.Title,
+                authors: row.Authors ? JSON.parse(row.Authors) : undefined,
+                sellingPrice: row.SellingPrice,
+                category: row.Category
+            }
+        };
     }
-    updateItemQuantity(userId: number, isbn: string, quantity: number): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    clearCart(userId: number): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    getCartItemByCartIdAndIsbn(cartId: number, isbn: string): Promise<CartItem | null> {
-        throw new Error("Method not implemented.");
-    }
-    createCartItem(cartId: number, isbn: string, quantity: number): Promise<CartItem> {
-        throw new Error("Method not implemented.");
-    }
-    updateCartItemQuantity(cartId: number, isbn: string, quantity: number): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
-    deleteCartItem(cartId: number, isbn: string): Promise<void> {
-        throw new Error("Method not implemented.");
-    }
+   async createCartItem(cartId: number, isbn: string, quantity: number): Promise<{
+        cartId: number;
+        isbn: string;
+        quantity: number;
+   }> {
+
+        const [result] = await pool.execute<ResultSetHeader>(
+            'INSERT INTO CartItems (CartID, ISBN, Quantity) VALUES (?, ?, ?)',
+            [cartId, isbn, quantity]
+        );
+
+        if (result.affectedRows !== 1) {
+  throw new Error("Failed to insert cart item");
+}
+
+
+        return {
+           
+            cartId,
+            isbn,
+            quantity
+        };
+
+  }
+
+  
+
 
 
     private async getCustomerCoreByUserId(userId: number) {
