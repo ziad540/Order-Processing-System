@@ -18,7 +18,7 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
   const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const categories = ['All', 'Science', 'Art', 'Religion', 'History', 'Geography'];
+  const categories = ['All', 'Science', 'Technology', 'Fiction', 'History', 'Geography','Art'];
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -75,8 +75,8 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
               key={category}
               onClick={() => setSelectedCategory(category)}
               className={`px-4 py-2 rounded-lg transition-colors ${selectedCategory === category
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-indigo-600 hover:text-indigo-600'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-indigo-600 hover:text-indigo-600'
                 }`}
             >
               {category}
@@ -95,9 +95,9 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
         {/* Books Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {books.map(book => (
-            <div key={book.isbn} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+            <div key={book.ISBN} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
               {/* Book Cover */}
-              <Link to={`/customer/book/${book.isbn}`}>
+              <Link to={`/customer/book/${book.ISBN}`}>
                 <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
                   <img
                     src={book.coverImage}
@@ -109,14 +109,14 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
 
               {/* Book Info */}
               <div className="p-4">
-                <Link to={`/customer/book/${book.isbn}`}>
+                <Link to={`/customer/book/${book.ISBN}`}>
                   <h3 className="text-gray-900 mb-2 hover:text-indigo-600 line-clamp-2">
                     {book.title}
                   </h3>
                 </Link>
 
                 <p className="text-gray-600 mb-1 line-clamp-1">
-                  {book.authors.join(', ')}
+                  {book.authors?.join(', ') || 'Unknown Author'}
                 </p>
 
                 <p className="text-gray-500 mb-2">{book.publisher}</p>
@@ -125,15 +125,15 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
                   <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">
                     {book.category}
                   </span>
-                  <span className="text-gray-500">ISBN: {book.isbn.slice(-6)}</span>
+                  <span className="text-gray-500">ISBN: {book.ISBN ? book.ISBN.slice(-6) : 'N/A'}</span>
                 </div>
 
                 {/* Availability */}
                 <div className="mb-3">
-                  {book.quantity > 0 ? (
+                  {book.stockLevel > 0 ? (
                     <div className="flex items-center text-green-600">
                       <CheckCircle className="w-4 h-4 mr-1" />
-                      <span>In Stock ({book.quantity} available)</span>
+                      <span>In Stock ({book.stockLevel} available)</span>
                     </div>
                   ) : (
                     <div className="flex items-center text-red-600">
@@ -145,13 +145,13 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
 
                 {/* Price & Add to Cart */}
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-900">${book.price.toFixed(2)}</span>
+                  <span className="text-gray-900">${Number(book.sellingPrice || 0).toFixed(2)}</span>
                   <button
                     onClick={() => handleAddToCart(book)}
-                    disabled={book.quantity === 0}
-                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${book.quantity > 0
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    disabled={book.stockLevel === 0}
+                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${book.stockLevel > 0
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
                   >
                     <ShoppingCart className="w-4 h-4" />

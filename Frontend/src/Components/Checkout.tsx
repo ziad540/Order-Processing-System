@@ -18,7 +18,7 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
   const [cvv, setCvv] = useState('');
   const [orderPlaced, setOrderPlaced] = useState(false);
 
-  const totalPrice = cart.reduce((sum, item) => sum + (item.book.price * item.quantity), 0);
+  const totalPrice = cart.reduce((sum, item) => sum + (item.book.sellingPrice * item.quantity), 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +58,7 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
-      
+
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-gray-900 mb-2">Checkout</h1>
@@ -205,16 +205,16 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
               <h2 className="text-gray-900 mb-6">Order Summary</h2>
-              
+
               <div className="space-y-4 mb-6">
                 {cart.map(item => (
-                  <div key={item.book.isbn} className="flex justify-between text-gray-600">
+                  <div key={item.book.ISBN} className="flex justify-between text-gray-600">
                     <div className="flex-1 pr-2">
                       <p className="line-clamp-2">{item.book.title}</p>
                       <p className="text-gray-500">Qty: {item.quantity}</p>
                     </div>
                     <div className="text-gray-900">
-                      ${(item.book.price * item.quantity).toFixed(2)}
+                      ${(item.book.sellingPrice * item.quantity).toFixed(2)}
                     </div>
                   </div>
                 ))}

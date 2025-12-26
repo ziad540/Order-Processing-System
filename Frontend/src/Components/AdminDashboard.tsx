@@ -1,7 +1,8 @@
 import { BookOpen, Package, TrendingUp, AlertCircle } from 'lucide-react';
 import AdminNavbar from './AdminNavbar';
-import { User } from '../App';
-import { mockBooks } from '../data/mockData';
+import { User, Book } from '../App';
+import { bookService } from '../services/bookService';
+import { useEffect, useState } from 'react';
 
 interface AdminDashboardProps {
   user: User;
@@ -9,10 +10,27 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
-  const totalBooks = mockBooks.length;
-  const totalInventory = mockBooks.reduce((sum, book) => sum + book.quantity, 0);
-  const lowStockBooks = mockBooks.filter(book => book.quantity <= book.threshold).length;
-  const totalValue = mockBooks.reduce((sum, book) => sum + (book.price * book.quantity), 0);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const data = await bookService.searchBooks('', 'All');
+        setBooks(data);
+      } catch (error) {
+        console.error('Failed to fetch books for dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBooks();
+  }, []);
+
+  const totalBooks = books.length;
+  const totalInventory = books.reduce((sum, book) => sum + book.stockLevel, 0);
+  const lowStockBooks = books.filter(book => book.stockLevel <= (book.threshold || 0)).length;
+  const totalValue = books.reduce((sum, book) => sum + (book.sellingPrice * book.stockLevel), 0);
 
   const recentActivity = [
     { action: 'New book added', details: 'Introduction to Algorithms', time: '2 hours ago' },
@@ -24,7 +42,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar user={user} onLogout={onLogout} />
-      
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-gray-900 mb-2">Dashboard</h1>
@@ -75,46 +93,31 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-1">
           {/* Low Stock Alert */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-gray-900 mb-6">Low Stock Alert</h2>
             <div className="space-y-4">
-              {mockBooks
-                .filter(book => book.quantity <= book.threshold)
-                .slice(0, 5)
-                .map(book => (
-                  <div key={book.isbn} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <div className="flex-1">
-                      <p className="text-gray-900">{book.title}</p>
-                      <p className="text-gray-600">ISBN: {book.isbn}</p>
+              <div className="space-y-4">
+                {books
+                  .filter(book => book.stockLevel <= (book.threshold || 0))
+                  .slice(0, 5)
+                  .map(book => (
+                    <div key={book.ISBN} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div className="flex-1">
+                        <p className="text-gray-900">{book.title}</p>
+                        <p className="text-gray-600">ISBN: {book.ISBN}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-amber-700">{book.stockLevel} left</p>
+                        <p className="text-gray-500">Threshold: {book.threshold}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-amber-700">{book.quantity} left</p>
-                      <p className="text-gray-500">Threshold: {book.threshold}</p>
-                    </div>
-                  </div>
-                ))}
-              {mockBooks.filter(book => book.quantity <= book.threshold).length === 0 && (
-                <p className="text-gray-500 text-center py-4">All books are well stocked</p>
-              )}
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-gray-900 mb-6">Recent Activity</h2>
-            <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-start space-x-3 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                  <div className="flex items-center justify-center w-2 h-2 bg-indigo-600 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="text-gray-900">{activity.action}</p>
-                    <p className="text-gray-600">{activity.details}</p>
-                    <p className="text-gray-500">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
+                  ))}
+                {!loading && books.filter(book => book.stockLevel <= (book.threshold || 0)).length === 0 && (
+                  <p className="text-gray-500 text-center py-4">All books are well stocked</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -123,11 +126,11 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-8">
           <h2 className="text-gray-900 mb-6">Books by Category</h2>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {['Science', 'Art', 'Religion', 'History', 'Geography'].map(category => {
-              const count = mockBooks.filter(book => book.category === category).length;
-              const quantity = mockBooks
+            {['Science', 'Art', 'Religion', 'History', 'Geography','Fiction','Technology'].map(category => {
+              const count = books.filter(book => book.category === category).length;
+              const quantity = books
                 .filter(book => book.category === category)
-                .reduce((sum, book) => sum + book.quantity, 0);
+                .reduce((sum, book) => sum + book.stockLevel, 0);
               return (
                 <div key={category} className="bg-gray-50 rounded-lg p-4 text-center">
                   <h3 className="text-gray-900 mb-2">{category}</h3>

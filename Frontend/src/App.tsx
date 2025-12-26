@@ -23,18 +23,10 @@ export interface User {
   address?: string;
 }
 
-export interface Book {
-  isbn: string;
-  title: string;
-  authors: string[];
-  publisher: string;
-  publicationYear: number;
-  category: 'Science' | 'Art' | 'Religion' | 'History' | 'Geography';
-  price: number;
-  quantity: number;
-  threshold: number;
-  coverImage: string;
-}
+// Re-export Book from shared types
+import { Book } from '../../shared/types';
+export type { Book };
+
 
 export interface CartItem {
   book: Book;
@@ -64,10 +56,10 @@ function App() {
 
   const addToCart = (book: Book, quantity: number = 1) => {
     setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.book.isbn === book.isbn);
+      const existingItem = prevCart.find(item => item.book.ISBN === book.ISBN);
       if (existingItem) {
         return prevCart.map(item =>
-          item.book.isbn === book.isbn
+          item.book.ISBN === book.ISBN
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
@@ -79,13 +71,13 @@ function App() {
   const updateCartQuantity = (isbn: string, quantity: number) => {
     setCart(prevCart =>
       prevCart.map(item =>
-        item.book.isbn === isbn ? { ...item, quantity } : item
+        item.book.ISBN === isbn ? { ...item, quantity } : item
       )
     );
   };
 
   const removeFromCart = (isbn: string) => {
-    setCart(prevCart => prevCart.filter(item => item.book.isbn !== isbn));
+    setCart(prevCart => prevCart.filter(item => item.book.ISBN !== isbn));
   };
 
   const clearCart = () => {
@@ -98,7 +90,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/signup" element={<Signup />} />
-          
+
           {/* Customer Routes */}
           <Route
             path="/customer/home"
@@ -156,7 +148,7 @@ function App() {
               )
             }
           />
-          
+
           {/* Admin Routes */}
           <Route
             path="/admin/dashboard"
@@ -198,7 +190,7 @@ function App() {
               )
             }
           />
-          
+
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
       </div>

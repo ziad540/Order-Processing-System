@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Edit2, Search, AlertCircle } from 'lucide-react';
 import AdminNavbar from './AdminNavbar';
 import { User, Book } from '../App';
-import { mockBooks as initialBooks } from '../data/mockData';
+import { bookService } from '../services/bookService';
 
 interface ManageBooksProps {
   user: User;
@@ -10,91 +10,121 @@ interface ManageBooksProps {
 }
 
 export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
-  const [books, setBooks] = useState<Book[]>(initialBooks);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [formData, setFormData] = useState<Partial<Book>>({
-    isbn: '',
+    ISBN: '',
     title: '',
     authors: [],
     publisher: '',
     publicationYear: new Date().getFullYear(),
     category: 'Science',
-    price: 0,
-    quantity: 0,
+    sellingPrice: 0,
+    stockLevel: 0,
     threshold: 10,
     coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop'
   });
 
+  const fetchBooks = async () => {
+    setIsLoading(true);
+    try {
+      // Using searchBooks with empty query to list all books
+      const data = await bookService.searchBooks('', 'All');
+      setBooks(data);
+    } catch (error) {
+      console.error('Failed to fetch books:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useState(() => {
+    fetchBooks();
+  });
+
   const filteredBooks = books.filter(book =>
-    book.isbn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    book.ISBN.toLowerCase().includes(searchTerm.toLowerCase()) ||
     book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    book.authors.some(author => author.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    book.publisher.toLowerCase().includes(searchTerm.toLowerCase())
+    (book.authors?.some((author:string) => author.toLowerCase().includes(searchTerm.toLowerCase())) ?? false) ||
+    (book.publisher?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'authors') {
-      setFormData(prev => ({ ...prev, authors: value.split(',').map(a => a.trim()) }));
-    } else if (name === 'price' || name === 'quantity' || name === 'threshold' || name === 'publicationYear') {
-      setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+      setFormData((prev:any) => ({ ...prev, authors: value.split(',').map(a => a.trim()) }));
+    } else if (name === 'sellingPrice' || name === 'stockLevel' || name === 'threshold' || name === 'publicationYear') {
+      setFormData((prev:any) => ({ ...prev, [name]: parseFloat(value) || 0 }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev:any) => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleAddBook = (e: React.FormEvent) => {
+  const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
     const newBook: Book = {
-      isbn: formData.isbn!,
+      ISBN: formData.ISBN!,
       title: formData.title!,
       authors: formData.authors!,
       publisher: formData.publisher!,
       publicationYear: formData.publicationYear!,
       category: formData.category as any,
-      price: formData.price!,
-      quantity: formData.quantity!,
+      sellingPrice: formData.sellingPrice!,
+      stockLevel: formData.stockLevel!,
       threshold: formData.threshold!,
       coverImage: formData.coverImage!
     };
-    setBooks([...books, newBook]);
-    setShowAddForm(false);
-    resetForm();
+
+    try {
+      await bookService.createBook(newBook);
+      await fetchBooks(); // Refresh list
+      setShowAddForm(false);
+      resetForm();
+    } catch (error) {
+      console.error('Failed to add book:', error);
+      alert('Failed to add book. Please check if ISBN already exists.');
+    }
   };
 
   const handleEditBook = (book: Book) => {
     setEditingBook(book);
     setFormData({
-      price: book.price,
-      quantity: book.quantity
+      sellingPrice: book.sellingPrice,
+      stockLevel: book.stockLevel
     });
   };
 
-  const handleUpdateBook = (e: React.FormEvent) => {
+  const handleUpdateBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingBook) {
-      setBooks(books.map(book =>
-        book.isbn === editingBook.isbn
-          ? { ...book, price: formData.price!, quantity: formData.quantity! }
-          : book
-      ));
-      setEditingBook(null);
-      resetForm();
+      try {
+        await bookService.updateBook(editingBook.ISBN, {
+          sellingPrice: formData.sellingPrice,
+          stockLevel: formData.stockLevel
+        });
+        await fetchBooks(); // Refresh list
+        setEditingBook(null);
+        resetForm();
+      } catch (error) {
+        console.error('Failed to update book:', error);
+        alert('Failed to update book.');
+      }
     }
   };
 
   const resetForm = () => {
     setFormData({
-      isbn: '',
+      ISBN: '',
       title: '',
       authors: [],
       publisher: '',
       publicationYear: new Date().getFullYear(),
       category: 'Science',
-      price: 0,
-      quantity: 0,
+      sellingPrice: 0,
+      stockLevel: 0,
       threshold: 10,
       coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop'
     });
@@ -103,7 +133,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar user={user} onLogout={onLogout} />
-      
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8 flex items-center justify-between">
           <div>
@@ -132,8 +162,8 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     <label className="block text-gray-700 mb-2">ISBN *</label>
                     <input
                       type="text"
-                      name="isbn"
-                      value={formData.isbn}
+                      name="ISBN"
+                      value={formData.ISBN}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       required
@@ -204,9 +234,9 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     <label className="block text-gray-700 mb-2">Price ($) *</label>
                     <input
                       type="number"
-                      name="price"
+                      name="sellingPrice"
                       step="0.01"
-                      value={formData.price}
+                      value={formData.sellingPrice}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       required
@@ -216,8 +246,8 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     <label className="block text-gray-700 mb-2">Quantity in Stock *</label>
                     <input
                       type="number"
-                      name="quantity"
-                      value={formData.quantity}
+                      name="stockLevel"
+                      value={formData.stockLevel}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       required
@@ -267,9 +297,9 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                   <label className="block text-gray-700 mb-2">Price ($) *</label>
                   <input
                     type="number"
-                    name="price"
+                    name="sellingPrice"
                     step="0.01"
-                    value={formData.price}
+                    value={formData.sellingPrice}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
@@ -279,8 +309,8 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                   <label className="block text-gray-700 mb-2">Stock Quantity *</label>
                   <input
                     type="number"
-                    name="quantity"
-                    value={formData.quantity}
+                    name="stockLevel"
+                    value={formData.stockLevel}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
@@ -341,21 +371,21 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
               </thead>
               <tbody>
                 {filteredBooks.map(book => (
-                  <tr key={book.isbn} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-6 py-4 text-gray-600">{book.isbn}</td>
+                  <tr key={book.ISBN} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-6 py-4 text-gray-600">{book.ISBN}</td>
                     <td className="px-6 py-4 text-gray-900">{book.title}</td>
-                    <td className="px-6 py-4 text-gray-600">{book.authors.join(', ')}</td>
+                    <td className="px-6 py-4 text-gray-600">{book.authors?.join(', ')}</td>
                     <td className="px-6 py-4 text-gray-600">{book.publisher}</td>
                     <td className="px-6 py-4">
                       <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">
                         {book.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right text-gray-900">${book.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right text-gray-900">${book.sellingPrice.toFixed(2)}</td>
                     <td className="px-6 py-4 text-right">
-                      <span className={book.quantity <= book.threshold ? 'text-amber-600' : 'text-gray-900'}>
-                        {book.quantity}
-                        {book.quantity <= book.threshold && (
+                      <span className={book.stockLevel <= (book.threshold || 0) ? 'text-amber-600' : 'text-gray-900'}>
+                        {book.stockLevel}
+                        {book.stockLevel <= (book.threshold || 0) && (
                           <AlertCircle className="w-4 h-4 inline ml-1" />
                         )}
                       </span>

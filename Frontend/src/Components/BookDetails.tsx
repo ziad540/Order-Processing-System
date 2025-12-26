@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ShoppingCart, CheckCircle, AlertCircle } from 'lucide-react';
 import CustomerNavbar from './CustomerNavbar';
 import { User, Book, CartItem } from '../App';
-import { mockBooks } from '../data/mockData';
+import { useEffect } from 'react';
+import { bookService } from '../services/bookService';
 
 interface BookDetailsProps {
   user: User;
@@ -16,8 +17,33 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
   const { isbn } = useParams<{ isbn: string }>();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
+  const [book, setBook] = useState<Book | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const book = mockBooks.find(b => b.isbn === isbn);
+  useEffect(() => {
+    const fetchBook = async () => {
+      if (!isbn) return;
+      setIsLoading(true);
+      try {
+        const data = await bookService.getBookByISBN(isbn);
+        setBook(data);
+      } catch (error) {
+        console.error('Failed to fetch book details:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBook();
+  }, [isbn]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-indigo-600 text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   if (!book) {
     return (
@@ -43,7 +69,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
-      
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Back Button */}
         <button
@@ -77,7 +103,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
                 <h1 className="text-gray-900 mb-4">{book.title}</h1>
                 <div className="space-y-2 text-gray-600">
                   <p>
-                    <span className="text-gray-900">Author(s):</span> {book.authors.join(', ')}
+                    <span className="text-gray-900">Author(s):</span> {book.authors?.join(', ')}
                   </p>
                   <p>
                     <span className="text-gray-900">Publisher:</span> {book.publisher}
@@ -86,7 +112,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
                     <span className="text-gray-900">Publication Year:</span> {book.publicationYear}
                   </p>
                   <p>
-                    <span className="text-gray-900">ISBN:</span> {book.isbn}
+                    <span className="text-gray-900">ISBN:</span> {book.ISBN}
                   </p>
                 </div>
               </div>
@@ -96,14 +122,14 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-700">Price:</span>
-                    <span className="text-gray-900">${book.price.toFixed(2)}</span>
+                    <span className="text-gray-900">${book.sellingPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-700">Availability:</span>
-                    {book.quantity > 0 ? (
+                    {book.stockLevel > 0 ? (
                       <div className="flex items-center text-green-600">
                         <CheckCircle className="w-5 h-5 mr-2" />
-                        <span>In Stock ({book.quantity} available)</span>
+                        <span>In Stock ({book.stockLevel} available)</span>
                       </div>
                     ) : (
                       <div className="flex items-center text-red-600">
@@ -125,10 +151,10 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
                     id="quantity"
                     type="number"
                     min="1"
-                    max={book.quantity}
+                    max={book.stockLevel}
                     value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Math.min(book.quantity, parseInt(e.target.value) || 1)))}
-                    disabled={book.quantity === 0}
+                    onChange={(e) => setQuantity(Math.max(1, Math.min(book.stockLevel, parseInt(e.target.value) || 1)))}
+                    disabled={book.stockLevel === 0}
                     className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
@@ -136,19 +162,18 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={handleAddToCart}
-                    disabled={book.quantity === 0}
-                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-colors ${
-                      book.quantity > 0
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }`}
+                    disabled={book.stockLevel === 0}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-colors ${book.stockLevel > 0
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      }`}
                   >
                     <ShoppingCart className="w-5 h-5" />
                     <span>Add to Cart</span>
                   </button>
 
                   <div className="text-gray-900">
-                    Subtotal: ${(book.price * quantity).toFixed(2)}
+                    Subtotal: ${(book.sellingPrice * quantity).toFixed(2)}
                   </div>
                 </div>
               </div>

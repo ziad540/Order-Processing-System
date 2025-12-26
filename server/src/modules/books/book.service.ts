@@ -47,6 +47,8 @@ export const createBook = (db: DataStore) => {
 export const listAllBooks = (db: DataStore) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log('DEBUG: req.query:', req.query);
+      console.log('DEBUG: req.params:', req.params);
       const { page, limit } = req.query;
 
       const { limit: limitNumber, offset: offsetNumber } = calculatePagination({

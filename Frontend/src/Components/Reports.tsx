@@ -25,16 +25,16 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
   ];
 
   const topSellingBooks = [
-    { rank: 1, isbn: '978-0-451-52493-5', title: 'Sapiens: A Brief History of Humankind', unitsSold: 145, revenue: 3333.55 },
-    { rank: 2, isbn: '978-0-134-68599-1', title: 'Introduction to Algorithms', unitsSold: 98, revenue: 8819.02 },
-    { rank: 3, isbn: '978-0-13-468599-0', title: 'Database System Concepts', unitsSold: 87, revenue: 6959.13 },
-    { rank: 4, isbn: '978-0-262-03384-8', title: 'Artificial Intelligence: A Modern Approach', unitsSold: 76, revenue: 7219.24 },
-    { rank: 5, isbn: '978-1-118-06333-0', title: 'Clean Code', unitsSold: 72, revenue: 3599.28 },
-    { rank: 6, isbn: '978-0-691-14267-2', title: 'Guns, Germs, and Steel', unitsSold: 65, revenue: 1819.35 },
-    { rank: 7, isbn: '978-0-465-02414-8', title: 'The Renaissance: A Short History', unitsSold: 58, revenue: 1449.42 },
-    { rank: 8, isbn: '978-0-13-235088-4', title: 'Operating System Concepts', unitsSold: 52, revenue: 4419.48 },
-    { rank: 9, isbn: '978-0-500-28638-0', title: 'Art: The Definitive Visual Guide', unitsSold: 48, revenue: 2207.52 },
-    { rank: 10, isbn: '978-0-142-00047-6', title: 'The Art Spirit', unitsSold: 45, revenue: 854.55 }
+    { rank: 1, ISBN: '978-0-451-52493-5', title: 'Sapiens: A Brief History of Humankind', unitsSold: 145, revenue: 3333.55 },
+    { rank: 2, ISBN: '978-0-134-68599-1', title: 'Introduction to Algorithms', unitsSold: 98, revenue: 8819.02 },
+    { rank: 3, ISBN: '978-0-13-468599-0', title: 'Database System Concepts', unitsSold: 87, revenue: 6959.13 },
+    { rank: 4, ISBN: '978-0-262-03384-8', title: 'Artificial Intelligence: A Modern Approach', unitsSold: 76, revenue: 7219.24 },
+    { rank: 5, ISBN: '978-1-118-06333-0', title: 'Clean Code', unitsSold: 72, revenue: 3599.28 },
+    { rank: 6, ISBN: '978-0-691-14267-2', title: 'Guns, Germs, and Steel', unitsSold: 65, revenue: 1819.35 },
+    { rank: 7, ISBN: '978-0-465-02414-8', title: 'The Renaissance: A Short History', unitsSold: 58, revenue: 1449.42 },
+    { rank: 8, ISBN: '978-0-13-235088-4', title: 'Operating System Concepts', unitsSold: 52, revenue: 4419.48 },
+    { rank: 9, ISBN: '978-0-500-28638-0', title: 'Art: The Definitive Visual Guide', unitsSold: 48, revenue: 2207.52 },
+    { rank: 10, ISBN: '978-0-142-00047-6', title: 'The Art Spirit', unitsSold: 45, revenue: 854.55 }
   ];
 
   const publisherOrderCount = searchIsbn ? 12 : 0;
@@ -42,7 +42,7 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminNavbar user={user} onLogout={onLogout} />
-      
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-gray-900 mb-2">Reports & Analytics</h1>
@@ -152,13 +152,12 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
                 {topSellingBooks.map(book => (
                   <tr key={book.rank} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <div className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                        book.rank <= 3 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'
-                      }`}>
+                      <div className={`flex items-center justify-center w-8 h-8 rounded-full ${book.rank <= 3 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'
+                        }`}>
                         {book.rank}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{book.isbn}</td>
+                    <td className="px-6 py-4 text-gray-600">{book.ISBN}</td>
                     <td className="px-6 py-4 text-gray-900">{book.title}</td>
                     <td className="px-6 py-4 text-center text-gray-900">{book.unitsSold}</td>
                     <td className="px-6 py-4 text-right text-gray-900">
@@ -182,7 +181,7 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
               <p className="text-gray-600">Check how many times a book was ordered from publishers</p>
             </div>
           </div>
-          
+
           <div className="mb-6">
             <label htmlFor="isbnSearch" className="block text-gray-700 mb-2">
               Enter ISBN to Search

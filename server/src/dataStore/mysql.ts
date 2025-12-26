@@ -4,6 +4,41 @@ import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { BookFilter } from "../../../shared/types.js";
 
 export class Mysql implements DataStore {
+  private mapRowToBook(row: any): Book {
+    console.log('DEBUG MAP ROW:', row);
+    
+    let authors: string[] = [];
+    const rawAuthors = row.authors || row.Author || row.author || '[]';
+    try {
+      if (typeof rawAuthors === 'string') {
+        // If it looks like JSON array
+        if (rawAuthors.trim().startsWith('[')) {
+           authors = JSON.parse(rawAuthors);
+        } else {
+           // Assume comma separated or single author
+           authors = [rawAuthors]; 
+        }
+      } else if (Array.isArray(rawAuthors)) {
+        authors = rawAuthors;
+      }
+    } catch (e) {
+      authors = [];
+    }
+
+    return {
+      ISBN: row.ISBN || row.isbn,
+      title: row.title || row.Title,
+      authors: authors,
+      publisher: row.publisher || row.Publisher || 'Unknown Publisher',
+      publicationYear: row.publicationYear || row.Pub_Year || row.Year || new Date().getFullYear(),
+      category: row.category || row.Category || 'General',
+      sellingPrice: Number(row.SellingPrice ?? row.Price ?? 0),
+      stockLevel: Number(row.StockLevel ?? row.quantity ?? row.Quantity ?? row.Stock ?? 0),
+      threshold: Number(row.threshold ?? row.Threshold ?? 10),
+      coverImage: row.coverImage || row.CoverImage || 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop'
+    };
+  }
+
   async searchBook(
     filter: BookFilter,
     pagination: { limit: number; offset: number }
@@ -28,10 +63,10 @@ export class Mysql implements DataStore {
       params.push(...filter.category);
     }
 
+    // Note: Assuming 'authors' column holds JSON array, standard LIKE might not be perfect but acceptable for simple search
     if (filter.author) {
-     
-      query += " AND Author LIKE ?";
-      countQuery += " AND Author LIKE ?";
+      query += " AND authors LIKE ?"; 
+      countQuery += " AND authors LIKE ?";
       params.push(`%${filter.author}%`);
     }
 
@@ -48,10 +83,11 @@ export class Mysql implements DataStore {
     );
 
     const total = countResult[0].total;
-    const books = rows as any as Book[];
+    const books = rows.map(row => this.mapRowToBook(row));
 
     return { books, total };
   }
+
   async updateBookByISBN(
     ISBN: string,
     updates: { sellingPrice?: number; stockLevel?: number; threshold?: number }
@@ -87,14 +123,16 @@ export class Mysql implements DataStore {
 
     return "Book updated successfully";
   }
+
   async getBookByISBN(ISBN: string): Promise<Book | null> {
     const [rows] = await pool.execute<RowDataPacket[]>(
       "SELECT * FROM books WHERE ISBN = ?",
       [ISBN]
     );
     if (rows.length === 0) return null;
-    return rows[0] as Book;
+    return this.mapRowToBook(rows[0]);
   }
+
   async listAllBooks({
     limit,
     offset,
@@ -111,19 +149,20 @@ export class Mysql implements DataStore {
       try {
         const [rowsResult, countResult] = await Promise.all([
           pool.query<RowDataPacket[]>(
-            "SELECT title,Author,sellingPrice,category,Pub_Year  FROM books LIMIT ? OFFSET ?",
+            "SELECT * FROM books LIMIT ? OFFSET ?",
             [finalLimit, finalOffset]
           ),
           pool.query<RowDataPacket[]>("SELECT COUNT(*) as total FROM books"),
         ]);
 
-        const rows = rowsResult[0] as Book[];
+        const rows = rowsResult[0] as any[]; // RowDataPacket[]
         const total = (countResult[0] as RowDataPacket[])[0].total;
 
         console.log(
           `[Mysql] listAllBooks retrieved ${rows.length} books. Total count: ${total}`
         );
-        resolve({ books: rows, total });
+        const books = rows.map(row => this.mapRowToBook(row));
+        resolve({ books, total });
       } catch (error) {
         console.error("[Mysql] Error in listAllBooks:", error);
         reject(error);

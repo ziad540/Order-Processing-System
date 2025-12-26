@@ -1,22 +1,69 @@
+import axios from 'axios';
 import { Book } from '../App';
-import { mockBooks } from '../data/mockData';
+
+const API_URL = 'http://localhost:3000/books';
 
 export const bookService = {
   searchBooks: async (query: string, category: string): Promise<Book[]> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      const isSearch = query.trim() !== '' || category !== 'All';
+      
+      let url = `${API_URL}/list`;
+      let params = { limit: 1000 };
+      
+      if (isSearch) {
+        url = `${API_URL}/search`;
+        const payload: any = {};
+        if (query.trim() !== '') payload.title = query;
+        if (category !== 'All') payload.categories = [category];
+        
+        const response = await axios.post(url, payload, { params });
+        console.log('API Response (Search/List):', response.data);
+        return response.data.data || [];
+      } else {
+        const response = await axios.get(url, { params });
+        console.log('API Response (List):', response.data);
+        return response.data.data || [];
+      }
 
-    return mockBooks.filter(book => {
-      const matchesSearch = 
-        query === '' ||
-        book.isbn.toLowerCase().includes(query.toLowerCase()) ||
-        book.title.toLowerCase().includes(query.toLowerCase()) ||
-        book.authors.some(author => author.toLowerCase().includes(query.toLowerCase())) ||
-        book.publisher.toLowerCase().includes(query.toLowerCase());
-      
-      const matchesCategory = category === 'All' || book.category === category;
-      
-      return matchesSearch && matchesCategory;
-    });
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+          return [];
+      }
+      console.error('Error fetching books:', error);
+      return [];
+    }
+  },
+
+  getBookByISBN: async (isbn: string): Promise<Book | null> => {
+    try {
+      const response = await axios.get(`${API_URL}/${isbn}`);
+      return response.data.book;
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      console.error(`Error fetching book with ISBN ${isbn}:`, error);
+      throw error;
+    }
+  },
+
+  createBook: async (book: Book): Promise<Book> => {
+    try {
+      const response = await axios.post(`${API_URL}/create`, book);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating book:', error);
+      throw error;
+    }
+  },
+
+  updateBook: async (isbn: string, updates: Partial<Book>): Promise<void> => {
+    try {
+      await axios.put(`${API_URL}/update/${isbn}`, updates);
+    } catch (error) {
+      console.error(`Error updating book with ISBN ${isbn}:`, error);
+      throw error;
+    }
   }
 };

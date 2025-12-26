@@ -14,7 +14,7 @@ interface ShoppingCartProps {
 export default function ShoppingCart({ user, onLogout, cart, updateQuantity, removeItem }: ShoppingCartProps) {
   const navigate = useNavigate();
 
-  const totalPrice = cart.reduce((sum, item) => sum + (item.book.price * item.quantity), 0);
+  const totalPrice = cart.reduce((sum, item) => sum + (item.book.sellingPrice * item.quantity), 0);
 
   const handleCheckout = () => {
     navigate('/customer/checkout');
@@ -23,7 +23,7 @@ export default function ShoppingCart({ user, onLogout, cart, updateQuantity, rem
   return (
     <div className="min-h-screen bg-gray-50">
       <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
-      
+
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-gray-900 mb-2">Shopping Cart</h1>
@@ -49,7 +49,7 @@ export default function ShoppingCart({ user, onLogout, cart, updateQuantity, rem
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {cart.map(item => (
-                <div key={item.book.isbn} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div key={item.book.ISBN} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                   <div className="flex gap-6">
                     {/* Book Cover */}
                     <div className="w-24 h-32 bg-gray-100 rounded overflow-hidden flex-shrink-0">
@@ -63,35 +63,35 @@ export default function ShoppingCart({ user, onLogout, cart, updateQuantity, rem
                     {/* Book Info */}
                     <div className="flex-1">
                       <h3 className="text-gray-900 mb-2">{item.book.title}</h3>
-                      <p className="text-gray-600 mb-1">{item.book.authors.join(', ')}</p>
-                      <p className="text-gray-500 mb-3">ISBN: {item.book.isbn}</p>
-                      
+                      <p className="text-gray-600 mb-1">{item.book.authors?.join(', ')}</p>
+                      <p className="text-gray-500 mb-3">ISBN: {item.book.ISBN}</p>
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <label htmlFor={`qty-${item.book.isbn}`} className="text-gray-700">
+                          <label htmlFor={`qty-${item.book.ISBN}`} className="text-gray-700">
                             Quantity:
                           </label>
                           <input
-                            id={`qty-${item.book.isbn}`}
+                            id={`qty-${item.book.ISBN}`}
                             type="number"
                             min="1"
-                            max={item.book.quantity}
+                            max={item.book.stockLevel}
                             value={item.quantity}
-                            onChange={(e) => updateQuantity(item.book.isbn, parseInt(e.target.value) || 1)}
+                            onChange={(e) => updateQuantity(item.book.ISBN, parseInt(e.target.value) || 1)}
                             className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           />
                         </div>
-                        
+
                         <div className="text-right">
-                          <p className="text-gray-600 mb-1">${item.book.price.toFixed(2)} each</p>
-                          <p className="text-gray-900">${(item.book.price * item.quantity).toFixed(2)}</p>
+                          <p className="text-gray-600 mb-1">${item.book.sellingPrice.toFixed(2)} each</p>
+                          <p className="text-gray-900">${(item.book.sellingPrice * item.quantity).toFixed(2)}</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Remove Button */}
                     <button
-                      onClick={() => removeItem(item.book.isbn)}
+                      onClick={() => removeItem(item.book.ISBN)}
                       className="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Remove from cart"
                     >
@@ -106,7 +106,7 @@ export default function ShoppingCart({ user, onLogout, cart, updateQuantity, rem
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
                 <h2 className="text-gray-900 mb-6">Order Summary</h2>
-                
+
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal:</span>

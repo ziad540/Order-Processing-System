@@ -3,6 +3,7 @@ import "dotenv/config";
 import { db, initDb } from "./dataStore/index.js";
 import { bookController } from "./modules/books/book.controller.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import cors from 'cors';
 
 
 
@@ -12,6 +13,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
   app.use(express.json());
   console.log("Database initialized");
 
+  app.use(cors());
   app.use('/books', bookController(db));
 
   //  http://localhost:3000/books/create
