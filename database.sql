@@ -84,7 +84,9 @@ CREATE TABLE CreditCards
 
 CREATE TABLE ShoppingCarts
 (
-    CartID INT PRIMARY KEY,
+
+    CartID INT PRIMARY KEY auto_increment,
+
     UserID INT UNIQUE NOT NULL,
     CONSTRAINT fk_cart_owner FOREIGN KEY (UserID) REFERENCES Customers (UserID)
 );
@@ -113,6 +115,7 @@ CREATE TABLE ReplenishmentOrders
     CONSTRAINT fk_order_admin FOREIGN KEY (AdminID) REFERENCES Admins (UserID),
     CONSTRAINT fk_order_pub FOREIGN KEY (PubID) REFERENCES Publishers (PubID),
     CONSTRAINT fk_order_book FOREIGN KEY (ISBN) REFERENCES Books (ISBN)
+
 );
 
 
