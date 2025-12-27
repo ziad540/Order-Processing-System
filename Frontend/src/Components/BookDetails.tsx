@@ -40,7 +40,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="text-indigo-600 text-xl">Loading...</div>
+        <div className="text-primary text-xl">Loading...</div>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="text-center">
             <h2 className="text-foreground mb-2">Book not found</h2>
-            <Link to="/customer/home" className="text-indigo-600 hover:text-indigo-700">
+            <Link to="/customer/home" className="text-primary hover:text-primary/80">
               Return to browse
             </Link>
           </div>
@@ -74,7 +74,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
         {/* Back Button */}
         <button
           onClick={() => navigate('/customer/home')}
-          className="flex items-center space-x-2 text-muted-foreground hover:text-indigo-600 dark:hover:text-primary mb-6"
+          className="flex items-center space-x-2 text-muted-foreground hover:text-primary mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Back to Browse</span>
@@ -87,9 +87,12 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
             <div className="lg:col-span-1">
               <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden">
                 <img
-                  src={book.coverImage}
+                  src={book.coverImage?.startsWith('http') ? book.coverImage : `http://localhost:3000/${book.coverImage}`}
                   alt={book.title}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop';
+                  }}
                 />
               </div>
             </div>
@@ -97,7 +100,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
             {/* Book Information */}
             <div className="lg:col-span-2">
               <div className="mb-6">
-                <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 dark:bg-muted dark:text-foreground rounded-lg mb-3">
+                <span className="inline-block px-3 py-1 bg-secondary text-secondary-foreground rounded-lg mb-3">
                   {book.category}
                 </span>
                 <h1 className="text-foreground mb-4">{book.title}</h1>
@@ -127,12 +130,12 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Availability:</span>
                     {book.stockLevel > 0 ? (
-                      <div className="flex items-center text-green-600">
+                      <div className="flex items-center text-success">
                         <CheckCircle className="w-5 h-5 mr-2" />
                         <span>In Stock ({book.stockLevel} available)</span>
                       </div>
                     ) : (
-                      <div className="flex items-center text-red-600">
+                      <div className="flex items-center text-destructive">
                         <AlertCircle className="w-5 h-5 mr-2" />
                         <span>Out of Stock</span>
                       </div>
@@ -164,7 +167,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
                     onClick={handleAddToCart}
                     disabled={book.stockLevel === 0}
                     className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-colors ${book.stockLevel > 0
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-primary dark:hover:bg-primary/90'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                       : 'bg-muted text-muted-foreground cursor-not-allowed'
                       }`}
                   >

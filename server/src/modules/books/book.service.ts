@@ -10,6 +10,7 @@ export const createBook = (db: DataStore) => {
         ISBN,
         title,
         authors,
+        publisher,
         publicationYear,
         sellingPrice,
         category,
@@ -18,9 +19,8 @@ export const createBook = (db: DataStore) => {
         PubID,
       }: Book = req.body;
       
-     
-
-      if (!ISBN || !title || !publicationYear || !sellingPrice || !category || !PubID) {
+      // Removed PubID from strict validation as it can be resolved from publisher name
+      if (!ISBN || !title || !publicationYear || !sellingPrice || !category) {
         return res.status(400).json({
           error: "Please fill all required fields",
         });
@@ -43,6 +43,7 @@ export const createBook = (db: DataStore) => {
         ISBN,
         title,
         authors: parsedAuthors,
+        publisher, // Pass publisher name to DAO
         publicationYear,
         sellingPrice,
         category,
@@ -169,15 +170,15 @@ export const updateBookByISBN = (db: DataStore) => {
 export const searchBooks = (db: DataStore) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { title, categories, author }: { title?: string; categories?: string[]; author?: string } = req.body;
+      const { title, category, author }: { title?: string; category?: string[]; author?: string } = req.body;
       
       const filter: BookFilter = {};
       if (title) filter.title = title;
-      if (categories && Array.isArray(categories) && categories.length > 0) filter.category = categories;
+      if (category && Array.isArray(category) && category.length > 0) filter.category = category;
       if (author) filter.author = author;
 
       if (Object.keys(filter).length === 0) {
-        return res.status(400).json({ message: "At least one filter (title, categories, or author) is required" });
+        return res.status(400).json({ message: "At least one filter (title, category, or author) is required" });
       }
 
       const { page, limit } = req.query;

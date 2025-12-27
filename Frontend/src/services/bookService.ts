@@ -15,7 +15,7 @@ export const bookService = {
         url = `${API_URL}/search`;
         const payload: any = {};
         if (query.trim() !== '') payload.title = query;
-        if (category !== 'All') payload.categories = [category];
+        if (category !== 'All') payload.category = [category];
         
         const response = await axios.post(url, payload, { params });
         console.log('API Response (Search/List):', response.data);
@@ -48,9 +48,10 @@ export const bookService = {
     }
   },
 
-  createBook: async (book: Book): Promise<Book> => {
+  createBook: async (book: Book | FormData): Promise<Book> => {
     try {
-      const response = await axios.post(`${API_URL}/create`, book);
+      const headers = book instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      const response = await axios.post(`${API_URL}/create`, book, { headers });
       return response.data;
     } catch (error) {
       console.error('Error creating book:', error);

@@ -46,14 +46,14 @@ export class Mysql implements DataStore {
     const finalLimit = Number(pagination.limit);
     const finalOffset = Number(pagination.offset);
 
-    let query = "SELECT books.*, GROUP_CONCAT(Authors.AuthorName) as authors FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN WHERE 1=1";
-    let countQuery = "SELECT COUNT(DISTINCT books.ISBN) as total FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN WHERE 1=1";
+    let query = "SELECT books.*, GROUP_CONCAT(DISTINCT Authors.AuthorName) as authors, Publishers.Name as publisher FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN LEFT JOIN Publishers ON books.PubID = Publishers.PubID WHERE 1=1";
+    let countQuery = "SELECT COUNT(DISTINCT books.ISBN) as total FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN LEFT JOIN Publishers ON books.PubID = Publishers.PubID WHERE 1=1";
     const params: any[] = [];
 
     if (filter.title) {
-      query += " AND books.title LIKE ?";
-      countQuery += " AND books.title LIKE ?";
-      params.push(`%${filter.title}%`);
+      query += " AND (books.title LIKE ? OR Publishers.Name LIKE ? OR EXISTS (SELECT 1 FROM Authors A2 WHERE A2.BookISBN = books.ISBN AND A2.AuthorName LIKE ?))";
+      countQuery += " AND (books.title LIKE ? OR Publishers.Name LIKE ? OR EXISTS (SELECT 1 FROM Authors A2 WHERE A2.BookISBN = books.ISBN AND A2.AuthorName LIKE ?))";
+      params.push(`%${filter.title}%`, `%${filter.title}%`, `%${filter.title}%`);
     }
 
     if (filter.category && filter.category.length > 0) {
@@ -127,7 +127,7 @@ export class Mysql implements DataStore {
 
   async getBookByISBN(ISBN: string): Promise<Book | null> {
     const [rows] = await pool.execute<RowDataPacket[]>(
-      "SELECT books.*, GROUP_CONCAT(Authors.AuthorName) as authors FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN WHERE books.ISBN = ? GROUP BY books.ISBN",
+      "SELECT books.*, GROUP_CONCAT(DISTINCT Authors.AuthorName) as authors, Publishers.Name as publisher FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN LEFT JOIN Publishers ON books.PubID = Publishers.PubID WHERE books.ISBN = ? GROUP BY books.ISBN",
       [ISBN]
     );
     if (rows.length === 0) return null;
@@ -150,7 +150,7 @@ export class Mysql implements DataStore {
       try {
         const [rowsResult, countResult] = await Promise.all([
           pool.query<RowDataPacket[]>(
-            "SELECT books.*, GROUP_CONCAT(Authors.AuthorName) as authors FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN GROUP BY books.ISBN LIMIT ? OFFSET ?",
+            "SELECT books.*, GROUP_CONCAT(DISTINCT Authors.AuthorName) as authors, Publishers.Name as publisher FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN LEFT JOIN Publishers ON books.PubID = Publishers.PubID GROUP BY books.ISBN LIMIT ? OFFSET ?",
             [finalLimit, finalOffset]
           ),
           pool.query<RowDataPacket[]>("SELECT COUNT(*) as total FROM books"),
@@ -171,23 +171,49 @@ export class Mysql implements DataStore {
     });
   }
 
+  private async getOrCreatePublisher(connection: any, publisherName: string): Promise<number> {
+    const [rows] = await connection.execute(
+      "SELECT PubID FROM Publishers WHERE Name = ?",
+      [publisherName]
+    );
+
+    if (rows.length > 0) {
+      return rows[0].PubID;
+    }
+
+    const [result] = await connection.execute(
+      "INSERT INTO Publishers (PublisherName, Address, Phone) VALUES (?, 'Unknown Address', '000-000-0000')",
+      [publisherName]
+    );
+    return result.insertId;
+  }
+
   async createNEWBook(book: Book): Promise<Book> {
     const {
       ISBN,
       title,
       authors,
+      publisher,
       publicationYear,
       sellingPrice,
       category,
       stockLevel,
       threshold,
-      PubID,
       coverImage,
     } = book;
 
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
+
+   
+        let pubIdToUse = await this.getOrCreatePublisher(connection, book.publisher as string);
+      
+
+      // If still no PubID, maybe default to 1 or throw specific error, 
+      // but getOrCreatePublisher should handle it if publisher name exists.
+      // If neither PubID nor publisher name, we might have an issue if DB requires it.
+      // Assuming DB requires it based on error "Foreign Key Constraint".
 
       await connection.execute(
         "INSERT INTO books (ISBN, title, Pub_Year, sellingPrice, category, stockLevel, threshold, PubID, coverImage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -199,7 +225,7 @@ export class Mysql implements DataStore {
           category,
           stockLevel,
           threshold ?? 10,
-          PubID,
+          pubIdToUse,
           coverImage || null
         ]
       );
@@ -214,16 +240,12 @@ export class Mysql implements DataStore {
       }
 
       await connection.commit();
+      return { ...book, PubID: pubIdToUse };
     } catch (error: any) {
       await connection.rollback();
-      if (error.errno === 1452) {
-        throw new Error("Foreign Key Constraint: PubID not found");
-      }
       throw error;
     } finally {
       connection.release();
     }
-
-    return book;
   }
 }

@@ -14,17 +14,17 @@ export default function AdminNavbar({ user, onLogout }: AdminNavbarProps) {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="bg-indigo-900 text-white shadow-lg dark:bg-background dark:text-foreground dark:border-b dark:border-border">
+    <nav className="bg-primary text-primary-foreground shadow-lg dark:bg-background dark:text-foreground dark:border-b dark:border-border">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/admin/dashboard" className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-10 h-10 bg-card rounded-lg dark:border dark:border-border">
-              <BookOpen className="w-6 h-6 text-indigo-900 dark:text-foreground" />
+            <div className="flex items-center justify-center w-10 h-10 bg-primary-foreground/10 rounded-lg dark:border dark:border-border">
+              <BookOpen className="w-6 h-6 text-primary-foreground dark:text-foreground" />
             </div>
             <div>
-              <div className="text-white dark:text-foreground">University Bookstore</div>
-              <div className="text-indigo-300 dark:text-muted-foreground">Admin Portal</div>
+              <div className="text-primary-foreground dark:text-foreground">University Bookstore</div>
+              <div className="text-primary-foreground/70 dark:text-muted-foreground">Admin Portal</div>
             </div>
           </Link>
 
@@ -32,11 +32,10 @@ export default function AdminNavbar({ user, onLogout }: AdminNavbarProps) {
           <div className="flex items-center space-x-6">
             <Link
               to="/admin/dashboard"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/admin/dashboard')
-                  ? 'bg-indigo-800 text-white dark:bg-muted dark:text-foreground'
-                  : 'text-indigo-200 hover:bg-indigo-800 hover:text-white dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActive('/admin/dashboard')
+                ? 'bg-primary-foreground/10 !text-primary-foreground dark:bg-muted dark:!text-foreground'
+                : '!text-primary-foreground/70 hover:bg-primary-foreground/10 hover:!text-primary-foreground dark:!text-muted-foreground dark:hover:bg-muted dark:hover:!text-foreground'
+                }`}
             >
               <BarChart3 className="w-5 h-5" />
               <span>Dashboard</span>
@@ -44,11 +43,10 @@ export default function AdminNavbar({ user, onLogout }: AdminNavbarProps) {
 
             <Link
               to="/admin/books"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/admin/books')
-                  ? 'bg-indigo-800 text-white dark:bg-muted dark:text-foreground'
-                  : 'text-indigo-200 hover:bg-indigo-800 hover:text-white dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActive('/admin/books')
+                ? 'bg-primary-foreground/10 !text-primary-foreground dark:bg-muted dark:!text-foreground'
+                : '!text-primary-foreground/70 hover:bg-primary-foreground/10 hover:!text-primary-foreground dark:!text-muted-foreground dark:hover:bg-muted dark:hover:!text-foreground'
+                }`}
             >
               <BookOpen className="w-5 h-5" />
               <span>Manage Books</span>
@@ -56,11 +54,10 @@ export default function AdminNavbar({ user, onLogout }: AdminNavbarProps) {
 
             <Link
               to="/admin/publisher-orders"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/admin/publisher-orders')
-                  ? 'bg-indigo-800 text-white dark:bg-muted dark:text-foreground'
-                  : 'text-indigo-200 hover:bg-indigo-800 hover:text-white dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActive('/admin/publisher-orders')
+                ? 'bg-primary-foreground/10 !text-primary-foreground dark:bg-muted dark:!text-foreground'
+                : '!text-primary-foreground/70 hover:bg-primary-foreground/10 hover:!text-primary-foreground dark:!text-muted-foreground dark:hover:bg-muted dark:hover:!text-foreground'
+                }`}
             >
               <Package className="w-5 h-5" />
               <span>Publisher Orders</span>
@@ -68,11 +65,10 @@ export default function AdminNavbar({ user, onLogout }: AdminNavbarProps) {
 
             <Link
               to="/admin/reports"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/admin/reports')
-                  ? 'bg-indigo-800 text-white dark:bg-muted dark:text-foreground'
-                  : 'text-indigo-200 hover:bg-indigo-800 hover:text-white dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground'
-              }`}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActive('/admin/reports')
+                ? 'bg-primary-foreground/10 !text-primary-foreground dark:bg-muted dark:!text-foreground'
+                : '!text-primary-foreground/70 hover:bg-primary-foreground/10 hover:!text-primary-foreground dark:!text-muted-foreground dark:hover:bg-muted dark:hover:!text-foreground'
+                }`}
             >
               <FileText className="w-5 h-5" />
               <span>Reports</span>
@@ -83,12 +79,12 @@ export default function AdminNavbar({ user, onLogout }: AdminNavbarProps) {
           <div className="flex items-center space-x-4">
             <ThemeToggle />
             <div className="flex flex-col items-end leading-tight">
-              <span className="text-white dark:text-foreground">{user.username}</span>
-              <span className="text-indigo-300 dark:text-muted-foreground">Administrator</span>
+              <span className="text-primary-foreground dark:text-foreground">{user.username}</span>
+              <span className="text-primary-foreground/70 dark:text-muted-foreground">Administrator</span>
             </div>
             <button
               onClick={onLogout}
-              className="flex items-center space-x-2 px-4 py-2 text-indigo-200 hover:text-white hover:bg-red-600 dark:text-muted-foreground dark:hover:bg-destructive/20 dark:hover:text-foreground rounded-lg transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 text-primary-foreground/70 hover:!text-primary-foreground hover:bg-destructive/90 dark:text-muted-foreground dark:hover:bg-destructive/20 dark:hover:!text-foreground rounded-lg transition-colors"
             >
               <LogOut className="w-5 h-5" />
               <span>Logout</span>

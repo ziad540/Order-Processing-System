@@ -10,6 +10,7 @@ interface ManageBooksProps {
 }
 
 export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,7 +26,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
     sellingPrice: 0,
     stockLevel: 0,
     threshold: 10,
-    coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop'
+    coverImage: ''
   });
 
   const fetchBooks = async () => {
@@ -42,24 +43,28 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
   };
 
   useState(() => {
+    // Only call fetchBooks if checks pass - but useEffect is better. 
+    // Keeping existing logic style but wrapping in useEffect would be better practice.
+    // For now, adhering to existing pattern if it works, but fetchBooks() ideally in useEffect.
     fetchBooks();
-  });
+  }); // Note: Original code had useState for side effect, likely a mistake but I'll stick to edits.
+  // Wait, original code: useState(() => { fetchBooks(); }); - this runs ONCE on init (lazy state init).
 
   const filteredBooks = books.filter(book =>
     book.ISBN.toLowerCase().includes(searchTerm.toLowerCase()) ||
     book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (book.authors?.some((author:string) => author.toLowerCase().includes(searchTerm.toLowerCase())) ?? false) ||
+    (book.authors?.some((author: string) => author.toLowerCase().includes(searchTerm.toLowerCase())) ?? false) ||
     (book.publisher?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === 'authors') {
-      setFormData((prev:any) => ({ ...prev, authors: value.split(',').map(a => a.trim()) }));
+      setFormData((prev: any) => ({ ...prev, authors: value.split(',').map(a => a.trim()) }));
     } else if (name === 'sellingPrice' || name === 'stockLevel' || name === 'threshold' || name === 'publicationYear') {
-      setFormData((prev:any) => ({ ...prev, [name]: parseFloat(value) || 0 }));
+      setFormData((prev: any) => ({ ...prev, [name]: parseFloat(value) || 0 }));
     } else {
-      setFormData((prev:any) => ({ ...prev, [name]: value }));
+      setFormData((prev: any) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -71,31 +76,53 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
         e.target.value = ''; // Clear the input
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev: any) => ({ ...prev, coverImage: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      setSelectedFile(file);
+      // Optional: still show preview if desired, but prioritize file
+      setFormData((prev: any) => ({ ...prev, coverImage: file.name }));
     }
   };
 
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newBook: Book = {
-      ISBN: formData.ISBN!,
-      title: formData.title!,
-      authors: formData.authors!,
-      publisher: formData.publisher!,
-      publicationYear: formData.publicationYear!,
-      category: formData.category as any,
-      sellingPrice: formData.sellingPrice!,
-      stockLevel: formData.stockLevel!,
-      threshold: formData.threshold!,
-      coverImage: formData.coverImage!
-    };
 
     try {
-      await bookService.createBook(newBook);
+      if (selectedFile) {
+        // Use FormData for file upload
+        const data = new FormData();
+        data.append('ISBN', formData.ISBN!);
+        data.append('title', formData.title!);
+        data.append('authors', JSON.stringify(formData.authors || []));
+        data.append('publisher', formData.publisher!);
+        data.append('publicationYear', String(formData.publicationYear));
+        data.append('category', formData.category!);
+        data.append('sellingPrice', String(formData.sellingPrice));
+        data.append('stockLevel', String(formData.stockLevel));
+        data.append('threshold', String(formData.threshold));
+        data.append('PubID', '1'); // Default PubID as it might be required by backend logic if not in form
+        data.append('coverImage', selectedFile);
+
+        await bookService.createBook(data);
+      } else {
+        // Fallback for no image (or string URL if supported, but typically we want consistent API usage)
+        // Adjust based on if backend REQUIRES multipart, currently server supports both but cleaner to stick to one if possible. 
+        // Given the requirement is upload, assume FormData flow.
+        // If generic book object is sent, it might fail image upload logic if expecting file.
+        const newBook: Book = {
+          ISBN: formData.ISBN!,
+          title: formData.title!,
+          authors: formData.authors!,
+          publisher: formData.publisher!,
+          publicationYear: formData.publicationYear!,
+          category: formData.category as any,
+          sellingPrice: formData.sellingPrice!,
+          stockLevel: formData.stockLevel!,
+          threshold: formData.threshold!,
+          coverImage: formData.coverImage!,
+          PubID: 1
+        };
+        await bookService.createBook(newBook);
+      }
+
       await fetchBooks(); // Refresh list
       setShowAddForm(false);
       resetForm();
@@ -132,6 +159,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
   };
 
   const resetForm = () => {
+    setSelectedFile(null);
     setFormData({
       ISBN: '',
       title: '',
@@ -142,7 +170,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
       sellingPrice: 0,
       stockLevel: 0,
       threshold: 10,
-      coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop'
+      coverImage: ''
     });
   };
 
@@ -158,7 +186,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
           </div>
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 dark:bg-primary dark:hover:bg-primary/90 transition-colors"
+            className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Add New Book</span>
@@ -313,7 +341,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-primary dark:hover:bg-primary/90 transition-colors"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     Add Book
                   </button>
@@ -364,7 +392,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 dark:bg-primary dark:hover:bg-primary/90 transition-colors"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     Update Book
                   </button>
@@ -415,7 +443,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     <td className="px-6 py-4 text-muted-foreground">{book.authors?.join(', ')}</td>
                     <td className="px-6 py-4 text-muted-foreground">{book.publisher}</td>
                     <td className="px-6 py-4">
-                      <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 dark:bg-muted dark:text-foreground rounded text-xs">
+                      <span className="inline-block px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">
                         {book.category}
                       </span>
                     </td>
@@ -432,7 +460,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => handleEditBook(book)}
-                        className="inline-flex items-center space-x-1 text-indigo-600 hover:text-indigo-700"
+                        className="inline-flex items-center space-x-1 text-primary hover:text-primary/80"
                       >
                         <Edit2 className="w-4 h-4" />
                         <span>Edit</span>
