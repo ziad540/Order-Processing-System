@@ -3,16 +3,24 @@ import "dotenv/config";
 import { db, initDb } from "./dataStore/index.js";
 import { bookController } from "./modules/books/book.controller.js";
 import { customerController } from "./modules/Customers/customer.controller.js";
+import dotenv from "dotenv";
+import { adminController } from "./modules/Admins/admin.controller.js";
+import { shoppingCartController } from "./modules/ShoppingCart/shoppingcart.controller.js";
 
 
 (async () => {
+  dotenv.config();
+
   await initDb();
+
   const app = express(); // 3SHAN NPARSE EL JSON 
   app.use(express.json());
   console.log("Database initialized");
 
   app.use('/books', bookController(db));
   app.use('/customers', customerController(db));
+  app.use('/admins', adminController(db));
+  app.use('/cart', shoppingCartController(db));
 
   //  http://localhost:3000/books/create
   // error handling middleware

@@ -6,6 +6,9 @@ import { NextFunction, Request, Response } from "express";
 import{ CartItem } from "../../../../shared/types.js";
 import { ShoppingCart } from "../../../../shared/types.js";
 
+import{ jwtObject } from "../../../../shared/types.js";
+import { signJwtToken } from "../../middleware/auth.middleware.js";
+import { Sign } from "node:crypto";
 
 
 export const SignUp = (db: DataStore) => async (req :Request , res:Response,  next: NextFunction) => {
@@ -71,10 +74,17 @@ console.log({
 
 });
     const passwordMatch = await verifyPassword(Password, user.Password);
+    const jwt = signJwtToken({
+        UserID: user.UserID,
+        role: await db.getUserRole(user.UserID)
+    });
     if (!passwordMatch) {
         return res.status(400).json({ error: "Invalid email or password" });
     }
-    res.status(200).json({ message: "Sign-in successful", user });
+    res.status(200).json({ message: "Sign-in successful", user ,
+        token: jwt
+         
+     });
 
 }
 
@@ -82,3 +92,21 @@ catch (error) {
 
             next(error);
 }}
+
+export const logout = (db: DataStore) => async (req :Request , res:Response,  next: NextFunction) => {
+
+    const decodedToken = (req as any).user ;
+    const user =await db.getById(decodedToken.UserID);
+    if (!user) {
+        return res.status(401).json({ error: 'User not found' });
+    }
+
+    const block = await db.blackListToken(decodedToken.jti);
+    const clearr= await db.clearCart(decodedToken.UserID);
+    res.status(200).json({ message: "Logout successful" , block  }
+
+    );
+    
+     
+
+}    

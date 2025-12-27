@@ -8,4 +8,5 @@ export interface UserDao {
   createUser(input: Omit<User, "UserID">): Promise<User>;
   existsByUsername(username: string): Promise<boolean>;
   existsByEmail(email: string): Promise<boolean>;
+  getUserRole(userId: number): Promise<"Admin" | "Customer">;
 }

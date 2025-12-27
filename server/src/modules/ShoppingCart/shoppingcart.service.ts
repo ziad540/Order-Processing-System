@@ -39,10 +39,17 @@ export const createCartItem = (db: DataStore) => async (req: Request, res: Respo
     }
 };
 
-export const getallitems = 
-(db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
-    const { userId } = req.body;
-    try {
+export const getallitems =  (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
+ 
+    try {  
+         const  userId  = (req as any).user.UserID;
+         if (!userId) {
+            return res.status(400).json({ error: "User ID is required" });
+        }
+        const userr = await db.getById(Number(userId));
+        if (!userr) {
+            return res.status(404).json({ error: "User not found" });
+        }
         const cartItems: CartItem[] = await db.getallCartItems(Number(userId));
         res.status(200).json(cartItems);
     } catch (error) {
@@ -51,8 +58,18 @@ export const getallitems =
 };
 
 export const removeCartItem = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
-    const { userId, isbn } = req.body;
+   
+    const  userId  = (req as any).user.UserID;
+    const { isbn } = req.body;
     try {
+      
+         if (!userId) {
+            return res.status(400).json({ error: "User ID is required" });
+        }
+        const userr = await db.getById(Number(userId));
+        if (!userr) {
+            return res.status(404).json({ error: "User not found" });
+        }
             const  result =  await db.getCartItemByUserIdAndIsbn( Number(userId), isbn);
             if(!result){
                 return res.status(404).json({ error: "book not found in your cart" });
@@ -68,8 +85,20 @@ export const removeCartItem = (db: DataStore) => async (req: Request, res: Respo
 };
 
 export const addoneItemQuantity = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
-    const { userId, isbn } = req.body;
+   const  userId  = (req as any).user.UserID;
     try {
+        
+        if (!userId) {
+           return res.status(400).json({ error: "User ID is required" });
+       }
+
+       const userr = await db.getById(Number(userId));
+       if (!userr) {
+           return res.status(404).json({ error: "User not found" });
+       }
+        
+        const {isbn } = req.body;
+
         await db.plusoneItemQuantity(Number(userId), isbn);
         res.status(200).json({ message: "Increased item quantity by one" });
     } catch (error) {
@@ -78,8 +107,17 @@ export const addoneItemQuantity = (db: DataStore) => async (req: Request, res: R
 };
 
 export const minusoneItemQuantity = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
-    const { userId, isbn } = req.body;
-    try {
+    const  userId  = (req as any).user.UserID;
+ 
+    const { isbn } = req.body;
+        try {    if (!userId) {
+            return res.status(400).json({ error: "User ID is required" });
+        }
+        const userr = await db.getById(Number(userId));
+        if (!userr) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
         await db.minusoneItemQuantity(Number(userId), isbn);
         res.status(200).json({ message: "Decreased item quantity by one" });
     }

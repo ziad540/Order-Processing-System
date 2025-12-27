@@ -1,4 +1,4 @@
-import { Book, CartItem, ShoppingCart } from "../../../shared/types.js";
+import { BlackListedToken, Book, CartItem, ShoppingCart } from "../../../shared/types.js";
 import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { User } from "../../../shared/types.js";
@@ -8,6 +8,53 @@ import { Admin } from "../../../shared/types.js";
 
 
 export class Mysql implements DataStore {
+  async findCustomerbyUserId(userId: number): Promise<boolean> 
+  { 
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      'SELECT 1 FROM Customers WHERE UserID = ? LIMIT 1',
+      [userId]
+    );
+    return rows.length > 0;
+
+    
+
+  }
+  async findAdminbyUserId(userId: number): Promise<boolean> 
+  {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      'SELECT 1 FROM Admins WHERE UserID = ? LIMIT 1',
+      [userId]
+    );
+    return rows.length > 0;
+    
+  }
+ async isTokenBlackListed(token: string): Promise<boolean> {
+     const [rows] = await pool.execute<RowDataPacket[]>(
+      'SELECT 1 FROM BlackListedTokens WHERE token = ? LIMIT 1',
+      [token]
+    );
+    return rows.length > 0;
+
+  }
+  async blackListToken(token: string): Promise<BlackListedToken> {
+    const [result] = await pool.execute<ResultSetHeader>(
+      'INSERT INTO BlackListedTokens (token, blacklistedAt) VALUES (?, ?)',
+      [token, new Date()]
+    );
+    return {
+      token,
+      blacklistedAt: new Date()
+    };
+  }
+  async getUserRole(userId: number): Promise<"Admin" | "Customer"> 
+  {
+
+     
+    const isAdmin = await this.findAdminbyUserId(userId);
+    if (isAdmin) return "Admin";
+    return "Customer";
+
+  }
   async plusoneItemQuantity(userId: number, isbn: string): Promise<void> {
 
 
@@ -398,12 +445,15 @@ export class Mysql implements DataStore {
       'INSERT INTO Customers (UserID, ShippingAddress, FirstName, LastName) VALUES (?, ?, ?, ?)',
       [UserID, ShippingAddress, FirstName, LastName]
     );
+    // ATOMIC OPERATION: Create cart for user immediately after creating customer
+    
+    await this.createCartForUser(UserID);
 
     return {
       ...user,
       ShippingAddress,
         FirstName,
-        LastName
+        LastName 
     };
 
 

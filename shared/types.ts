@@ -53,6 +53,16 @@ export interface ShoppingCart {
 }
 
 
+export interface jwtObject {
+  UserID: number;
+  role: "Admin" | "Customer";
+}
+
+export interface BlackListedToken {
+  token: string;
+  blacklistedAt: Date;
+}
+
 
 
 

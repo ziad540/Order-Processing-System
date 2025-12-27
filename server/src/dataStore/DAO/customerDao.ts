@@ -14,4 +14,6 @@ input: {
         LastName: string;
 }
   ): Promise<Customer>;
+
+  findCustomerbyUserId(userId: number): Promise<boolean>;
 }
