@@ -63,24 +63,20 @@ export const signin = (db: DataStore) => async (req: Request, res: Response, nex
         if (!user) {
             return res.status(400).json({ error: "Invalid email or password" });
         }
-        console.log("User fetched by email:", user);
 
-        console.log({
-            Password,
-
-            userPassword: user.Password
-
-        });
         const passwordMatch = await verifyPassword(Password, user.Password);
+        const role = await db.getUserRole(user.UserID);
+        
         const jwt = signJwtToken({
             UserID: user.UserID,
-            role: await db.getUserRole(user.UserID)
+            role: role
         });
         if (!passwordMatch) {
             return res.status(400).json({ error: "Invalid email or password" });
         }
         res.status(200).json({
-            message: "Sign-in successful", user,
+            message: "Sign-in successful", 
+            user: { ...user, role },
             token: jwt
 
         });
@@ -122,6 +118,7 @@ export const getProfile = (db: DataStore) => async (req: Request, res: Response,
         const userId = decodedToken.UserID;
         const user = await db.getById(userId);
         const customer = await db.getCustomerById(userId);
+        const role = await db.getUserRole(userId);
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -129,8 +126,9 @@ export const getProfile = (db: DataStore) => async (req: Request, res: Response,
 
         // Combine user and customer data
         const profileData = {
-            ...user, // Contains UserID, Username, email, phones, Role (Address is likely in Customer)
-            ...customer // Contains ShippingAddress, FirstName, LastName
+            ...user, // Contains UserID, Username, email, phones
+            ...customer, // Contains ShippingAddress, FirstName, LastName
+            role // Add role explicitly
         };
 
         // Remove sensitive data if necessary (Password is already removed in some flows, but good to be safe)

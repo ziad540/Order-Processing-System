@@ -558,6 +558,7 @@ export class Mysql implements DataStore {
   }
   async createNewAdmin(admin: Admin): Promise<Admin> {
     const user = await this.createUser(admin);
+    await pool.execute('INSERT INTO Admins (UserID) VALUES (?)', [user.UserID]);
     return user as Admin;
   }
 
@@ -852,12 +853,19 @@ export class Mysql implements DataStore {
     return rows;
   }
 
-  async getSalesByDate(date: string): Promise<number> {
+  async getSalesByDate(date: string): Promise<{ totalRevenue: number; totalTransactions: number }> {
     const [rows] = await pool.query<RowDataPacket[]>(
-      "SELECT SUM(TotalAmount) as total FROM SalesTransactions WHERE DATE(TransactionDate) = ?",
+      `SELECT 
+        COUNT(TransactionID) AS TotalTransactions,
+        IFNULL(SUM(TotalAmount), 0) AS TotalRevenue
+    FROM SalesTransactions
+    WHERE DATE(TransactionDate) = ?`,
       [date]
     );
-    return Number(rows[0].total || 0);
+    return {
+      totalRevenue: Number(rows[0].TotalRevenue),
+      totalTransactions: Number(rows[0].TotalTransactions)
+    };
   }
 
   async getOrderHistory(userId: number): Promise<any[]> {

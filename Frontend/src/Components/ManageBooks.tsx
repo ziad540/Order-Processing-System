@@ -333,6 +333,8 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                       <option value="Religion">Religion</option>
                       <option value="History">History</option>
                       <option value="Geography">Geography</option>
+                      <option value="Technology">Technology</option>
+                      <option value="Fiction">Fiction</option>
                     </select>
                   </div>
                   <div>

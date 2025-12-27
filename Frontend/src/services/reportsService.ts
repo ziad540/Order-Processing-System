@@ -29,9 +29,9 @@ export const reportsService = {
     return response.data;
   },
 
-  getSalesByDate: async (date: string): Promise<number> => {
+  getSalesByDate: async (date: string): Promise<{ totalRevenue: number; totalTransactions: number }> => {
     const response = await axios.get(`${API_URL}/sales-by-date`, { params: { date } });
-    return response.data.total;
+    return response.data;
   },
 
   getOrderHistory: async (userId: number): Promise<any[]> => {
