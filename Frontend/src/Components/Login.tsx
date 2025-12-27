@@ -23,9 +23,11 @@ export default function Login({ onLogin }: LoginProps) {
     try {
       const result = await authService.login({ email, password });
 
+      console.log('[Login] Login result:', result);
       let user = result.user;
       try {
         const fullProfile = await authService.getUserProfile();
+        console.log('[Login] Full profile fetched:', fullProfile);
         if (fullProfile) {
           user = fullProfile;
         }
@@ -37,7 +39,9 @@ export default function Login({ onLogin }: LoginProps) {
       // Assuming result.user matches UserType largely, but check role specifically
 
       // Ensure role is mapped correctly if backend sends differently (e.g. 'Customer' vs 'customer')
+      console.log('[Login] User object before mapping:', user);
       const role = user.role ? user.role.toLowerCase() : 'customer';
+      console.log('[Login] Detected role:', role);
 
       const mappedUser: UserType = {
         id: user.UserID?.toString() || user.id,

@@ -26,8 +26,8 @@ export const getSalesByDate = (db: DataStore) => {
       if (!date) {
         return res.status(400).json({ error: 'Date is required' });
       }
-      const total = await db.getSalesByDate(date as string);
-      res.status(200).json({ total });
+      const result = await db.getSalesByDate(date as string);
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }

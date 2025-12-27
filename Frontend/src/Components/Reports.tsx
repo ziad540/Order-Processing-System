@@ -13,7 +13,7 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchIsbn, setSearchIsbn] = useState('');
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [salesOnSelectedDate, setSalesOnSelectedDate] = useState(0);
+  const [salesOnSelectedDate, setSalesOnSelectedDate] = useState<{ totalRevenue: number; totalTransactions: number }>({ totalRevenue: 0, totalTransactions: 0 });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -30,8 +30,8 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
   useEffect(() => {
     const fetchSalesByDate = async () => {
       try {
-        const total = await reportsService.getSalesByDate(selectedDate);
-        setSalesOnSelectedDate(total);
+        const data = await reportsService.getSalesByDate(selectedDate);
+        setSalesOnSelectedDate(data);
       } catch (error) {
         console.error('Failed to fetch sales by date:', error);
       }
@@ -99,7 +99,8 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
                 className="px-3 py-2 border border-border bg-background rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <p className="text-foreground">${salesOnSelectedDate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-foreground">Revenue: ${salesOnSelectedDate.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-foreground">Transactions: {salesOnSelectedDate.totalTransactions}</p>
           </div>
         </div>
 
