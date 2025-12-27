@@ -1,7 +1,7 @@
 -- 1. Create the Parent User Table
-CREATE DATABASE Booksystem;
+CREATE DATABASE IF NOT EXISTS Booksystem ;
 USE Booksystem;
-CREATE TABLE Users
+CREATE TABLE IF NOT EXISTS Users
 (
     UserID   INT PRIMARY KEY auto_increment,
     Username VARCHAR(50) UNIQUE  NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE Users
 );
 
 
-CREATE TABLE User_Phones
+CREATE TABLE IF NOT EXISTS User_Phones
 (
     PhoneNumber varchar(20) NOT NULL,
     UserID      INT,
@@ -21,14 +21,14 @@ CREATE TABLE User_Phones
 
 
 -- 2. Create Subclass: Admin
-CREATE TABLE Admins
+CREATE TABLE IF NOT EXISTS Admins
 (
     UserID INT PRIMARY KEY,
     CONSTRAINT fk_admin_user FOREIGN KEY (UserID) REFERENCES Users (UserID)
 );
 
 -- 3. Create Subclass: Customer
-CREATE TABLE Customers
+CREATE TABLE IF NOT EXISTS Customers
 (
     UserID          INT PRIMARY KEY,
     FirstName       VARCHAR(50),
@@ -38,15 +38,14 @@ CREATE TABLE Customers
 );
 
 -- 4. Create Publishers
-CREATE TABLE Publishers
+CREATE TABLE IF NOT EXISTS Publishers
 (
     PubID     INT PRIMARY KEY,
     Name      VARCHAR(100) NOT NULL,
-    Address   VARCHAR(150),
-    Telephone VARCHAR(20)
+    Address   VARCHAR(150)
 );
 
-CREATE TABLE Publisher_phone
+CREATE TABLE IF NOT EXISTS Publisher_phone
 (
     PhoneNumber varchar(20) NOT NULL,
     PubID       INT,
@@ -57,22 +56,24 @@ CREATE TABLE Publisher_phone
 
 
 -- 5. Create Books
-CREATE TABLE Books
+CREATE TABLE IF NOT EXISTS Books
 (
     ISBN         VARCHAR(20) PRIMARY KEY,
     Title        VARCHAR(150)   NOT NULL,
-    Author       VARCHAR(100)   NOT NULL,
     Pub_Year     INT            NOT NULL,
     SellingPrice DECIMAL(10, 2) NOT NULL,
     Category     VARCHAR(50)    NOT NULL,
     PubID        INT            NOT NULL,
     StockLevel   INT            NOT NULL,
     threshold    INT            NOT NULL,
+    coverImage   LONGTEXT,
     CONSTRAINT fk_book_publisher FOREIGN KEY (PubID) REFERENCES Publishers (PubID)
 );
 
+
+
 -- 6. Create Credit Cards (Owned by Customer)
-CREATE TABLE CreditCards
+CREATE TABLE IF NOT EXISTS CreditCards
 (
     CardNum    VARCHAR(20) PRIMARY KEY,
     ExpiryDate DATE NOT NULL,
@@ -81,15 +82,16 @@ CREATE TABLE CreditCards
 );
 
 
-CREATE TABLE ShoppingCarts
+CREATE TABLE IF NOT EXISTS ShoppingCarts
 (
-    CartID INT PRIMARY KEY,
+    CartID INT PRIMARY KEY Auto_Increment,
     UserID INT UNIQUE NOT NULL,
     CONSTRAINT fk_cart_owner FOREIGN KEY (UserID) REFERENCES Customers (UserID)
 );
 
 
-CREATE TABLE CartItems
+
+CREATE TABLE IF NOT EXISTS CartItems
 (
     CartID   INT         NOT NULL,
     ISBN     VARCHAR(20) NOT NULL,
@@ -100,13 +102,13 @@ CREATE TABLE CartItems
 );
 
 
-CREATE TABLE ReplenishmentOrders
+CREATE TABLE IF NOT EXISTS ReplenishmentOrders
 (
     OrderID           INT PRIMARY KEY AUTO_INCREMENT,
     OrderDate         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     OrderStatus       VARCHAR(50) NOT NULL,
     QuantityRequested INT         NOT NULL,
-    AdminID           INT         NOT NULL,
+    AdminID           INT,
     PubID             INT         NOT NULL,
     ISBN              VARCHAR(20) NOT NULL,
     CONSTRAINT fk_order_admin FOREIGN KEY (AdminID) REFERENCES Admins (UserID),
@@ -115,7 +117,7 @@ CREATE TABLE ReplenishmentOrders
 );
 
 
-CREATE TABLE SalesTransactions
+CREATE TABLE IF NOT EXISTS SalesTransactions
 (
     TransactionID   INT PRIMARY KEY AUTO_INCREMENT,
     TransactionDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -127,7 +129,7 @@ CREATE TABLE SalesTransactions
 );
 
 
-CREATE TABLE TransactionItems
+CREATE TABLE IF NOT EXISTS TransactionItems
 (
     TransactionID      INT            NOT NULL,
     ISBN               VARCHAR(20)    NOT NULL,
@@ -137,3 +139,135 @@ CREATE TABLE TransactionItems
     CONSTRAINT fk_trans_item_trans FOREIGN KEY (TransactionID) REFERENCES SalesTransactions (TransactionID),
     CONSTRAINT fk_trans_item_book FOREIGN KEY (ISBN) REFERENCES Books (ISBN)
 );
+
+
+CREATE TABLE IF NOT EXISTS Authors (
+
+    AuthorName     varchar(100) NOT NULL ,
+    BookISBN       VARCHAR(20)   ,
+    primary key (AuthorName,BookISBN),
+    CONSTRAINT fk_book   FOREIGN KEY (BookISBN) REFERENCES Books (ISBN)
+
+
+);
+
+DELIMITER //
+
+CREATE TRIGGER TR_OrderItems_DeductStock
+    AFTER INSERT ON TransactionItems
+    FOR EACH ROW
+BEGIN
+    UPDATE Books
+    SET StockLevel = StockLevel - NEW.Quantity
+    WHERE ISBN = NEW.ISBN;
+
+    -- Note: MySQL will also trigger any constraints or
+    -- additional triggers defined on the 'Book' table automatically.
+END //
+
+DELIMITER ;
+
+
+DELIMITER //
+
+CREATE TRIGGER TR_Books_PreventNegativeStock
+    BEFORE UPDATE ON Books
+    FOR EACH ROW
+BEGIN
+    IF NEW.StockLevel < 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Transaction cancelled: Insufficient stock available.';
+    END IF;
+END //
+
+DELIMITER ;
+
+
+DELIMITER //
+
+CREATE TRIGGER TR_Books_AutoReplenish
+    AFTER UPDATE ON Books
+    FOR EACH ROW
+BEGIN
+    -- Check if stock fell below threshold and an order doesn't already exist
+    IF NEW.StockLevel <= NEW.threshold AND OLD.StockLevel > NEW.threshold THEN
+        INSERT INTO ReplenishmentOrders (OrderStatus, QuantityRequested, AdminID, PubID, ISBN)
+        VALUES ('Pending', 30, NULL, NEW.PubID, NEW.ISBN);
+    END IF;
+END //
+
+DELIMITER ;
+
+
+DELIMITER //
+
+CREATE TRIGGER TR_Sales_ClearCart
+    AFTER INSERT ON SalesTransactions
+    FOR EACH ROW
+BEGIN
+    -- Locate the CartID for this User
+    DELETE CI FROM CartItems CI
+                       JOIN ShoppingCarts SC ON CI.CartID = SC.CartID
+    WHERE SC.UserID = NEW.UserID;
+END //
+
+DELIMITER ;
+
+
+CREATE VIEW View_Sales_LastMonth AS
+SELECT
+    IFNULL(SUM(TotalAmount), 0) AS TotalRevenue,
+    COUNT(TransactionID) AS TotalTransactions,
+    DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%M %Y') AS ReportingMonth
+FROM SalesTransactions
+WHERE TransactionDate >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
+  AND TransactionDate < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01');
+
+CREATE VIEW View_Top5Customers_3Months AS
+SELECT
+    C.UserID,
+    C.FirstName,
+    C.LastName,
+    COUNT(ST.TransactionID) AS OrdersPlaced,
+    SUM(ST.TotalAmount) AS TotalSpent
+FROM SalesTransactions ST
+         JOIN Customers C ON ST.UserID = C.UserID
+WHERE ST.TransactionDate >= CURRENT_DATE - INTERVAL 3 MONTH
+GROUP BY C.UserID, C.FirstName, C.LastName
+ORDER BY TotalSpent DESC
+LIMIT 5;
+
+
+CREATE VIEW View_Top10Books_3Months AS
+SELECT
+    B.ISBN,
+    B.Title,
+    SUM(TI.Quantity) AS TotalCopiesSold,
+    B.StockLevel AS CurrentStock
+FROM TransactionItems TI
+         JOIN SalesTransactions ST ON TI.TransactionID = ST.TransactionID
+         JOIN Books B ON TI.ISBN = B.ISBN
+WHERE ST.TransactionDate >= CURRENT_DATE - INTERVAL 3 MONTH
+GROUP BY B.ISBN, B.Title, B.StockLevel
+ORDER BY TotalCopiesSold DESC
+LIMIT 10;
+
+
+
+
+CREATE VIEW View_OrderHistory AS
+SELECT
+    ST.UserID,
+    ST.TransactionID,
+    ST.TransactionDate,
+    ST.TotalAmount AS OrderTotal,
+    B.Title AS BookTitle,
+    TI.Quantity,
+    TI.SellingPriceAtTime AS PricePerUnit,
+    (TI.Quantity * TI.SellingPriceAtTime) AS LineItemTotal
+FROM SalesTransactions ST
+         JOIN TransactionItems TI ON ST.TransactionID = TI.TransactionID
+         JOIN Books B ON TI.ISBN = B.ISBN;
+
+
+
