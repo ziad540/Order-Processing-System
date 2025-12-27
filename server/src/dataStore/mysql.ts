@@ -1,13 +1,15 @@
-import { BlackListedToken, Book, CartItem, ShoppingCart } from "../../../shared/types.js";
+import { 
+  BlackListedToken, 
+  Book, 
+  CartItem, 
+  ShoppingCart, 
+  User, 
+  Customer, 
+  Admin, 
+  BookFilter 
+} from "../../../shared/types.js";
 import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
-
-import { User } from "../../../shared/types.js";
-import { Customer } from "../../../shared/types.js";
-import { Admin } from "../../../shared/types.js";
-
-
-
 export class Mysql implements DataStore {
   async findCustomerbyUserId(userId: number): Promise<boolean> 
   { 
@@ -549,8 +551,6 @@ async existsByUsername(username: string): Promise<boolean> {
         return rows[0] as Book;
     }
 
-import { BookFilter } from "../../../shared/types.js";
-
   private mapRowToBook(row: any): Book {
     console.log('DEBUG MAP ROW:', row);
     
@@ -730,7 +730,7 @@ import { BookFilter } from "../../../shared/types.js";
     }
 
     const [result] = await connection.execute(
-      "INSERT INTO Publishers (PublisherName, Address, Phone) VALUES (?, 'Unknown Address', '000-000-0000')",
+      "INSERT INTO Publishers (Name, Address, Telephone) VALUES (?, 'Unknown Address', '000-000-0000')",
       [publisherName]
     );
     return result.insertId;
