@@ -1,7 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Package } from 'lucide-react';
 import CustomerNavbar from './CustomerNavbar';
 import { User } from '../App';
-import { mockOrders } from '../data/mockData';
+import { reportsService } from '../services/reportsService';
 
 interface OrderHistoryProps {
   user: User;
@@ -9,6 +10,22 @@ interface OrderHistoryProps {
 }
 
 export default function OrderHistory({ user, onLogout }: OrderHistoryProps) {
+  const [orders, setOrders] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const data = await reportsService.getOrderHistory(Number(user.id));
+        setOrders(data);
+      } catch (error) {
+        console.error('Failed to fetch order history:', error);
+      }
+    };
+    if (user.id) {
+      fetchOrders();
+    }
+  }, [user.id]);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <CustomerNavbar user={user} onLogout={onLogout} />
@@ -19,7 +36,7 @@ export default function OrderHistory({ user, onLogout }: OrderHistoryProps) {
           <p className="text-muted-foreground">View your past orders</p>
         </div>
 
-        {mockOrders.length === 0 ? (
+        {orders.length === 0 ? (
           <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-foreground mb-2">No orders yet</h2>
@@ -27,7 +44,7 @@ export default function OrderHistory({ user, onLogout }: OrderHistoryProps) {
           </div>
         ) : (
           <div className="space-y-6">
-            {mockOrders.map(order => (
+            {orders.map(order => (
               <div key={order.orderNumber} className="bg-card text-card-foreground rounded-lg shadow-sm border border-border overflow-hidden">
                 {/* Order Header */}
                 <div className="bg-muted px-6 py-4 border-b border-border">
@@ -73,7 +90,7 @@ export default function OrderHistory({ user, onLogout }: OrderHistoryProps) {
                         </tr>
                       </thead>
                       <tbody>
-                        {order.items.map(item => (
+                        {order.items.map((item: any) => (
                           <tr key={item.isbn} className="border-b border-border">
                             <td className="px-4 py-3 text-muted-foreground">{item.isbn}</td>
                             <td className="px-4 py-3 text-foreground">{item.title}</td>

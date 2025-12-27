@@ -7,11 +7,8 @@ import { adminDao } from './DAO/adminDao.js';
 import { ShoppingCartDao } from './DAO/shoppingCartDao.js';
 import { CartItemDao } from './DAO/cartItemDao.js';
 import { BlackListedTokensDao } from './DAO/blackListedTokensDao.js';
-
-export interface DataStore extends bookDao , CustomerDao, UserDao, adminDao , ShoppingCartDao, CartItemDao, BlackListedTokensDao {
-
-  
-}
+import { ReportsDao } from './DAO/reportsDao.js';
+export interface DataStore extends bookDao, CustomerDao, UserDao, adminDao, ShoppingCartDao, CartItemDao, BlackListedTokensDao, ReportsDao {}
 
 
 

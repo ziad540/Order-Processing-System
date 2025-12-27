@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, TrendingUp, Users, BookOpen, Search } from 'lucide-react';
 import AdminNavbar from './AdminNavbar';
 import { User } from '../App';
+import { reportsService, DashboardStats } from '../services/reportsService';
 
 interface AdminReportsProps {
   user: User;
@@ -9,35 +10,54 @@ interface AdminReportsProps {
 }
 
 export default function Reports({ user, onLogout }: AdminReportsProps) {
-  const [selectedDate, setSelectedDate] = useState('2024-12-15');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchIsbn, setSearchIsbn] = useState('');
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [salesOnSelectedDate, setSalesOnSelectedDate] = useState(0);
 
-  // Mock data for reports
-  const totalSalesLastMonth = 15234.50;
-  const salesOnSelectedDate = 1250.75;
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await reportsService.getDashboardStats();
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      }
+    };
+    fetchStats();
+  }, []);
 
-  const topCustomers = [
-    { rank: 1, name: 'Alice Johnson', email: 'alice.j@university.edu', totalSpent: 1250.99, orders: 8 },
-    { rank: 2, name: 'Bob Smith', email: 'bob.smith@university.edu', totalSpent: 1100.50, orders: 7 },
-    { rank: 3, name: 'Carol Davis', email: 'carol.d@university.edu', totalSpent: 950.25, orders: 6 },
-    { rank: 4, name: 'David Wilson', email: 'david.w@university.edu', totalSpent: 875.00, orders: 5 },
-    { rank: 5, name: 'Emma Brown', email: 'emma.b@university.edu', totalSpent: 820.75, orders: 5 }
-  ];
+  useEffect(() => {
+    const fetchSalesByDate = async () => {
+      try {
+        const total = await reportsService.getSalesByDate(selectedDate);
+        setSalesOnSelectedDate(total);
+      } catch (error) {
+        console.error('Failed to fetch sales by date:', error);
+      }
+    };
+    fetchSalesByDate();
+  }, [selectedDate]);
 
-  const topSellingBooks = [
-    { rank: 1, ISBN: '978-0-451-52493-5', title: 'Sapiens: A Brief History of Humankind', unitsSold: 145, revenue: 3333.55 },
-    { rank: 2, ISBN: '978-0-134-68599-1', title: 'Introduction to Algorithms', unitsSold: 98, revenue: 8819.02 },
-    { rank: 3, ISBN: '978-0-13-468599-0', title: 'Database System Concepts', unitsSold: 87, revenue: 6959.13 },
-    { rank: 4, ISBN: '978-0-262-03384-8', title: 'Artificial Intelligence: A Modern Approach', unitsSold: 76, revenue: 7219.24 },
-    { rank: 5, ISBN: '978-1-118-06333-0', title: 'Clean Code', unitsSold: 72, revenue: 3599.28 },
-    { rank: 6, ISBN: '978-0-691-14267-2', title: 'Guns, Germs, and Steel', unitsSold: 65, revenue: 1819.35 },
-    { rank: 7, ISBN: '978-0-465-02414-8', title: 'The Renaissance: A Short History', unitsSold: 58, revenue: 1449.42 },
-    { rank: 8, ISBN: '978-0-13-235088-4', title: 'Operating System Concepts', unitsSold: 52, revenue: 4419.48 },
-    { rank: 9, ISBN: '978-0-500-28638-0', title: 'Art: The Definitive Visual Guide', unitsSold: 48, revenue: 2207.52 },
-    { rank: 10, ISBN: '978-0-142-00047-6', title: 'The Art Spirit', unitsSold: 45, revenue: 854.55 }
-  ];
+  const totalSalesLastMonth = stats?.salesLastMonth.totalRevenue || 0;
 
-  const publisherOrderCount = searchIsbn ? 12 : 0;
+  const topCustomers = stats?.topCustomers.map((c, index) => ({
+    rank: index + 1,
+    name: `${c.FirstName} ${c.LastName}`,
+    email: `User ID: ${c.UserID}`, // Email not in view, using ID
+    totalSpent: c.TotalSpent,
+    orders: c.OrdersPlaced
+  })) || [];
+
+  const topSellingBooks = stats?.topBooks.map((b, index) => ({
+    rank: index + 1,
+    ISBN: b.ISBN,
+    title: b.Title,
+    unitsSold: b.TotalCopiesSold,
+    revenue: 0 // Revenue not in view, would need calculation or view update
+  })) || [];
+
+  const publisherOrderCount = searchIsbn ? 12 : 0; // Placeholder logic remains for now
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -59,7 +79,7 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
               </div>
             </div>
             <h2 className="text-foreground mb-2">Total Sales Last Month</h2>
-            <p className="text-muted-foreground mb-4">November 2024</p>
+            <p className="text-muted-foreground mb-4">{stats?.salesLastMonth.reportingMonth || 'Loading...'}</p>
             <p className="text-foreground">${totalSalesLastMonth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
 
@@ -100,7 +120,7 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
                 <tr>
                   <th className="px-6 py-3 text-left text-muted-foreground">Rank</th>
                   <th className="px-6 py-3 text-left text-muted-foreground">Customer Name</th>
-                  <th className="px-6 py-3 text-left text-muted-foreground">Email</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">User ID</th>
                   <th className="px-6 py-3 text-center text-muted-foreground">Total Orders</th>
                   <th className="px-6 py-3 text-right text-muted-foreground">Total Spent</th>
                 </tr>
@@ -145,7 +165,6 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
                   <th className="px-6 py-3 text-left text-muted-foreground">ISBN</th>
                   <th className="px-6 py-3 text-left text-muted-foreground">Title</th>
                   <th className="px-6 py-3 text-center text-muted-foreground">Units Sold</th>
-                  <th className="px-6 py-3 text-right text-muted-foreground">Revenue</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,9 +179,6 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
                     <td className="px-6 py-4 text-muted-foreground">{book.ISBN}</td>
                     <td className="px-6 py-4 text-foreground">{book.title}</td>
                     <td className="px-6 py-4 text-center text-foreground">{book.unitsSold}</td>
-                    <td className="px-6 py-4 text-right text-foreground">
-                      ${book.revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
                   </tr>
                 ))}
               </tbody>

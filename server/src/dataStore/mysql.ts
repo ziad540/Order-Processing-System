@@ -797,5 +797,43 @@ async existsByUsername(username: string): Promise<boolean> {
     }
 
   }
+
+  async getSalesLastMonth(): Promise<{ totalRevenue: number; totalTransactions: number; reportingMonth: string }> {
+    const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM View_Sales_LastMonth");
+    if (rows.length === 0) {
+      return { totalRevenue: 0, totalTransactions: 0, reportingMonth: '' };
+    }
+    return {
+      totalRevenue: Number(rows[0].TotalRevenue),
+      totalTransactions: Number(rows[0].TotalTransactions),
+      reportingMonth: rows[0].ReportingMonth
+    };
+  }
+
+  async getTop5Customers(): Promise<any[]> {
+    const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM View_Top5Customers_3Months");
+    return rows;
+  }
+
+  async getTop10Books(): Promise<any[]> {
+    const [rows] = await pool.query<RowDataPacket[]>("SELECT * FROM View_Top10Books_3Months");
+    return rows;
+  }
+
+  async getSalesByDate(date: string): Promise<number> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "SELECT SUM(TotalAmount) as total FROM SalesTransactions WHERE DATE(TransactionDate) = ?",
+      [date]
+    );
+    return Number(rows[0].total || 0);
+  }
+
+  async getOrderHistory(userId: number): Promise<any[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      "SELECT * FROM View_OrderHistory WHERE UserID = ? ORDER BY TransactionDate DESC",
+      [userId]
+    );
+    return rows;
+  }
 }
 
