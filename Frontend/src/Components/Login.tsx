@@ -1,40 +1,68 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Lock, User } from 'lucide-react';
+import { BookOpen, Lock, Mail, Loader2 } from 'lucide-react'; // Changed User to Mail for email login
 import { User as UserType } from '../App';
+import * as authService from '../services/authService';
 
 interface LoginProps {
   onLogin: (user: UserType) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Mock authentication
-    if (username === 'admin' && password === 'admin') {
-      onLogin({
-        id: '1',
-        username: 'admin',
-        role: 'admin'
-      });
-      navigate('/admin/dashboard');
-    } else {
-      onLogin({
-        id: '2',
-        username: username || 'customer',
-        role: 'customer',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@university.edu',
-        phone: '+1-555-0123',
-        address: '123 University Ave, College Town, ST 12345'
-      });
-      navigate('/customer/home');
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const result = await authService.login({ email, password });
+
+      let user = result.user;
+      try {
+        const fullProfile = await authService.getUserProfile();
+        if (fullProfile) {
+          user = fullProfile;
+        }
+      } catch (error) {
+        console.error("Failed to fetch full profile after login", error);
+      }
+
+      // Map backend user to frontend UserType if structures differ
+      // Assuming result.user matches UserType largely, but check role specifically
+
+      // Ensure role is mapped correctly if backend sends differently (e.g. 'Customer' vs 'customer')
+      const role = user.role ? user.role.toLowerCase() : 'customer';
+
+      const mappedUser: UserType = {
+        id: user.UserID?.toString() || user.id,
+        username: user.Username || user.username,
+        role: role as 'admin' | 'customer',
+        firstName: user.FirstName || user.firstName,
+        lastName: user.LastName || user.lastName,
+        email: user.email || user.Email,
+        phone: user.phones?.[0] || user.phone,
+        address: user.ShippingAddress || user.shippingAddress || user.address
+      };
+
+      onLogin(mappedUser);
+
+      if (role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/customer/home');
+      }
+
+    } catch (err: any) {
+      console.error('Login failed', err);
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -51,23 +79,29 @@ export default function Login({ onLogin }: LoginProps) {
             <p className="text-muted-foreground">Order Processing System</p>
           </div>
 
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm text-center">
+              {error}
+            </div>
+          )}
+
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-muted-foreground mb-2">
-                Username
+              <label htmlFor="email" className="block text-muted-foreground mb-2">
+                Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-muted-foreground" />
+                  <Mail className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                   required
                 />
               </div>
@@ -95,9 +129,17 @@ export default function Login({ onLogin }: LoginProps) {
 
             <button
               type="submit"
-              className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 transition-colors"
+              disabled={isLoading}
+              className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              Login
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                'Login'
+              )}
             </button>
           </form>
 

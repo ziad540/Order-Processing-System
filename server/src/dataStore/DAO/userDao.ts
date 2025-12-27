@@ -9,4 +9,6 @@ export interface UserDao {
   existsByUsername(username: string): Promise<boolean>;
   existsByEmail(email: string): Promise<boolean>;
   getUserRole(userId: number): Promise<"Admin" | "Customer">;
+  updatePassword(userId: number, password: string): Promise<void>;
+  updateEmail(userId: number, email: string): Promise<void>;
 }

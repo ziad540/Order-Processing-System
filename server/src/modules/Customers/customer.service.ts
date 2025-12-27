@@ -1,26 +1,28 @@
 import { DataStore } from "../../dataStore/index.js";
 import { User } from "../../../../shared/types.js";
 import { Customer } from "../../../../shared/types.js";
-import { hashPassword, verifyPassword }  from  "../../../utils/passwordUtils.js";
+import { hashPassword, verifyPassword } from "../../../utils/passwordUtils.js";
 import { NextFunction, Request, Response } from "express";
-import{ CartItem } from "../../../../shared/types.js";
+import { CartItem } from "../../../../shared/types.js";
 import { ShoppingCart } from "../../../../shared/types.js";
 
-import{ jwtObject } from "../../../../shared/types.js";
+import { jwtObject } from "../../../../shared/types.js";
 import { signJwtToken } from "../../middleware/auth.middleware.js";
 import { Sign } from "node:crypto";
 
 
-export const SignUp = (db: DataStore) => async (req :Request , res:Response,  next: NextFunction) => {
+export const SignUp = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
     const { Username, email, phones, Password, FirstName, LastName, ShippingAddress } = req.body;
     try {
         const existingUser = await db.existsByUsername(Username);
         if (existingUser) {
-            return res.status(400).json({ error: "Username already exists" });}
+            return res.status(400).json({ error: "Username already exists" });
+        }
 
         const existingEmail = await db.existsByEmail(email);
         if (existingEmail) {
-            return res.status(400).json({ error: "Email already exists" });}
+            return res.status(400).json({ error: "Email already exists" });
+        }
 
 
         const hashedPassword = await hashPassword(Password);
@@ -36,77 +38,178 @@ export const SignUp = (db: DataStore) => async (req :Request , res:Response,  ne
 
         const user_ID = createdUser.UserID;
 
-        const createdCustomer= await  db.createCustomer(user_ID,{ ShippingAddress, FirstName ,LastName } )
-
-        const createdcart:ShoppingCart = await db.createCartForUser(user_ID);
+        const createdCustomer = await db.createCustomer(user_ID, { ShippingAddress, FirstName, LastName })
 
 
+        res.status(200).json({ message: "Sign-up successful", createdCustomer });
 
 
-      res.status(200).json({ message: "Sign-up successful", createdCustomer , createdcart  });
 
-
-    
     }
     catch (error) {
 
-              next(error);    
-   
-   
-            }
+        next(error);
+
+
+    }
 
 
 
 }
-export const signin = (db: DataStore) => async (req :Request , res:Response,  next: NextFunction) => {
-try{
-    const { email, Password } = req.body;
-    const user : User|null = await db.getuserByEmail(email);
-    if (!user) {
-        return  res.status(400).json({ error: "Invalid email or password" });
+export const signin = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, Password } = req.body;
+        const user: User | null = await db.getuserByEmail(email);
+        if (!user) {
+            return res.status(400).json({ error: "Invalid email or password" });
+        }
+        console.log("User fetched by email:", user);
+
+        console.log({
+            Password,
+
+            userPassword: user.Password
+
+        });
+        const passwordMatch = await verifyPassword(Password, user.Password);
+        const jwt = signJwtToken({
+            UserID: user.UserID,
+            role: await db.getUserRole(user.UserID)
+        });
+        if (!passwordMatch) {
+            return res.status(400).json({ error: "Invalid email or password" });
+        }
+        res.status(200).json({
+            message: "Sign-in successful", user,
+            token: jwt
+
+        });
+
     }
-console.log("User fetched by email:", user);
- 
-console.log({
-  Password,
 
-    userPassword: user.Password
+    catch (error) {
 
-});
-    const passwordMatch = await verifyPassword(Password, user.Password);
-    const jwt = signJwtToken({
-        UserID: user.UserID,
-        role: await db.getUserRole(user.UserID)
-    });
-    if (!passwordMatch) {
-        return res.status(400).json({ error: "Invalid email or password" });
+        next(error);
     }
-    res.status(200).json({ message: "Sign-in successful", user ,
-        token: jwt
-         
-     });
-
 }
 
-catch (error) {
+export const logout = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
 
-            next(error);
-}}
-
-export const logout = (db: DataStore) => async (req :Request , res:Response,  next: NextFunction) => {
-
-    const decodedToken = (req as any).user ;
-    const user =await db.getById(decodedToken.UserID);
+    const decodedToken = (req as any).user;
+    const user = await db.getById(decodedToken.UserID);
     if (!user) {
         return res.status(401).json({ error: 'User not found' });
     }
 
     const block = await db.blackListToken(decodedToken.jti);
-    const clearr= await db.clearCart(decodedToken.UserID);
-    res.status(200).json({ message: "Logout successful" , block  }
+    const clearr = await db.clearCart(decodedToken.UserID);
+    res.status(200).json({ message: "Logout successful", block }
 
     );
-    
-     
 
-}    
+
+
+
+}
+
+export const getProfile = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const decodedToken = (req as any).user;
+        if (!decodedToken || !decodedToken.UserID) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const userId = decodedToken.UserID;
+        const user = await db.getById(userId);
+        const customer = await db.getCustomerById(userId);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Combine user and customer data
+        const profileData = {
+            ...user, // Contains UserID, Username, email, phones, Role (Address is likely in Customer)
+            ...customer // Contains ShippingAddress, FirstName, LastName
+        };
+
+        // Remove sensitive data if necessary (Password is already removed in some flows, but good to be safe)
+        const { Password, ...safeProfileData } = profileData as any;
+
+        res.status(200).json(safeProfileData);
+    } catch (error) {
+        next(error);
+    }
+}
+
+
+export const updateProfile = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const decodedToken = (req as any).user;
+        if (!decodedToken || !decodedToken.UserID) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const { firstName, lastName, email, address } = req.body;
+        const userId = decodedToken.UserID;
+
+        // Optional: Basic validation
+        if (email && !email.includes('@')) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        // Update User table (email)
+        if (email) {
+            await db.updateEmail(userId, email);
+        }
+
+        // Update Customer table (details)
+        if (firstName || lastName || address) {
+            await db.updateCustomerDetails(userId, {
+                firstName,
+                lastName,
+                shippingAddress: address
+            });
+        }
+
+        res.status(200).json({ message: 'Profile updated successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updatePassword = (db: DataStore) => async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const decodedToken = (req as any).user;
+        if (!decodedToken || !decodedToken.UserID) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const userId = decodedToken.UserID;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Current and new password are required' });
+        }
+
+        const user = await db.getById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Verify current password
+        const passwordMatch = await verifyPassword(currentPassword, user.Password);
+        if (!passwordMatch) {
+            return res.status(400).json({ error: 'Incorrect current password' });
+        }
+
+        // Hash new password
+        const hashedNewPassword = await hashPassword(newPassword);
+
+        // Update
+        await db.updatePassword(userId, hashedNewPassword);
+
+        res.status(200).json({ message: 'Password updated successfully' });
+    } catch (error) {
+        next(error);
+    }
+};

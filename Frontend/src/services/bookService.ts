@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Book } from '../App';
+import { getAuthHeaders } from './authService';
 
 const API_URL = 'http://localhost:3000/books';
 
@@ -50,8 +51,14 @@ export const bookService = {
 
   createBook: async (book: Book | FormData): Promise<Book> => {
     try {
-      const headers = book instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
-      const response = await axios.post(`${API_URL}/create`, book, { headers });
+      const authHeaders = getAuthHeaders();
+      const contentHeaders = book instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      const response = await axios.post(`${API_URL}/create`, book, { 
+        headers: {
+            ...contentHeaders,
+            ...authHeaders
+        }
+      });
       return response.data;
     } catch (error) {
       console.error('Error creating book:', error);
@@ -61,7 +68,8 @@ export const bookService = {
 
   updateBook: async (isbn: string, updates: Partial<Book>): Promise<void> => {
     try {
-      await axios.put(`${API_URL}/update/${isbn}`, updates);
+      const headers = getAuthHeaders();
+      await axios.put(`${API_URL}/update/${isbn}`, updates, { headers });
     } catch (error) {
       console.error(`Error updating book with ISBN ${isbn}:`, error);
       throw error;

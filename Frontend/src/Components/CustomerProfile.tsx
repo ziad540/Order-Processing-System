@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { User as UserIcon } from 'lucide-react';
 import CustomerNavbar from './CustomerNavbar';
 import { User, CartItem } from '../App';
+import * as authService from '../services/authService';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -29,6 +30,15 @@ export default function CustomerProfile({ user, onLogout, cart = [], onUpdateUse
   const [profile, setProfile] = useState(initialProfile);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    setProfile({
+      firstName: user.firstName ?? '',
+      lastName: user.lastName ?? '',
+      email: user.email ?? '',
+      address: user.address ?? ''
+    });
+  }, [user]);
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -36,26 +46,39 @@ export default function CustomerProfile({ user, onLogout, cart = [], onUpdateUse
   });
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileMessage(null);
 
-    onUpdateUser({
-      firstName: profile.firstName.trim(),
-      lastName: profile.lastName.trim(),
-      email: profile.email.trim(),
-      address: profile.address.trim()
-    });
+    try {
+      await authService.updateProfile({
+        firstName: profile.firstName.trim(),
+        lastName: profile.lastName.trim(),
+        email: profile.email.trim(),
+        address: profile.address.trim()
+      });
 
-    setProfileMessage('Profile updated.');
+      onUpdateUser({
+        firstName: profile.firstName.trim(),
+        lastName: profile.lastName.trim(),
+        email: profile.email.trim(),
+        address: profile.address.trim()
+      });
+
+      setProfileMessage('Profile updated successfully.');
+    } catch (error: any) {
+      console.error('Failed to update profile', error);
+      setProfileMessage(error.message || 'Failed to update profile.');
+    }
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordMessage(null);
 
     const newPassword = passwordForm.newPassword.trim();
     const confirmPassword = passwordForm.confirmPassword.trim();
+    const currentPassword = passwordForm.currentPassword.trim();
 
     if (newPassword.length < 6) {
       setPasswordMessage('New password must be at least 6 characters.');
@@ -67,8 +90,17 @@ export default function CustomerProfile({ user, onLogout, cart = [], onUpdateUse
       return;
     }
 
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setPasswordMessage('Password updated.');
+    try {
+      await authService.updatePassword({
+        currentPassword,
+        newPassword
+      });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordMessage('Password updated successfully.');
+    } catch (error: any) {
+      console.error('Failed to update password', error);
+      setPasswordMessage(error.message || 'Failed to update password.');
+    }
   };
 
   return (

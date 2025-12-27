@@ -1,38 +1,36 @@
-import { 
-  BlackListedToken, 
-  Book, 
-  CartItem, 
-  ShoppingCart, 
-  User, 
-  Customer, 
-  Admin, 
-  BookFilter 
+import {
+  BlackListedToken,
+  Book,
+  CartItem,
+  ShoppingCart,
+  User,
+  Customer,
+  Admin,
+  BookFilter
 } from "../../../shared/types.js";
 import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 export class Mysql implements DataStore {
-  async findCustomerbyUserId(userId: number): Promise<boolean> 
-  { 
+  async findCustomerbyUserId(userId: number): Promise<boolean> {
     const [rows] = await pool.execute<RowDataPacket[]>(
       'SELECT 1 FROM Customers WHERE UserID = ? LIMIT 1',
       [userId]
     );
     return rows.length > 0;
 
-    
+
 
   }
-  async findAdminbyUserId(userId: number): Promise<boolean> 
-  {
+  async findAdminbyUserId(userId: number): Promise<boolean> {
     const [rows] = await pool.execute<RowDataPacket[]>(
       'SELECT 1 FROM Admins WHERE UserID = ? LIMIT 1',
       [userId]
     );
     return rows.length > 0;
-    
+
   }
- async isTokenBlackListed(token: string): Promise<boolean> {
-     const [rows] = await pool.execute<RowDataPacket[]>(
+  async isTokenBlackListed(token: string): Promise<boolean> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
       'SELECT 1 FROM BlackListedTokens WHERE token = ? LIMIT 1',
       [token]
     );
@@ -49,10 +47,9 @@ export class Mysql implements DataStore {
       blacklistedAt: new Date()
     };
   }
-  async getUserRole(userId: number): Promise<"Admin" | "Customer"> 
-  {
+  async getUserRole(userId: number): Promise<"Admin" | "Customer"> {
 
-     
+
     const isAdmin = await this.findAdminbyUserId(userId);
     if (isAdmin) return "Admin";
     return "Customer";
@@ -61,7 +58,7 @@ export class Mysql implements DataStore {
   async plusoneItemQuantity(userId: number, isbn: string): Promise<void> {
 
 
-    const shoppingCartId =await this.getCartIdByUserId(userId);
+    const shoppingCartId = await this.getCartIdByUserId(userId);
     if (!shoppingCartId) {
       throw new Error("Shopping cart not found for user");
     }
@@ -80,11 +77,11 @@ export class Mysql implements DataStore {
     return;
 
 
-   
+
 
   }
   async minusoneItemQuantity(userId: number, isbn: string): Promise<void> {
-    const shoppingCartId =await this.getCartIdByUserId(userId);
+    const shoppingCartId = await this.getCartIdByUserId(userId);
     if (!shoppingCartId) {
       throw new Error("Shopping cart not found for user");
     }
@@ -104,52 +101,50 @@ export class Mysql implements DataStore {
   }
   async getCartItemByUserIdAndIsbn(userId: number, isbn: string): Promise<CartItem | null> {
 
-    const cartIdPromise =await this.getCartIdByUserId(userId);
-    
+    const cartIdPromise = await this.getCartIdByUserId(userId);
+
     if (!cartIdPromise) {
       throw new Error("Shopping cart not found for user");
     }
     return this.getCartItemByCartIdAndIsbn(cartIdPromise, isbn);
 
-    
+
 
   }
   async getallCartItems(userId: number): Promise<CartItem[]> {
+    const cartId = await this.getCartIdByUserId(userId);
+    console.log(`[Mysql] getallCartItems. UserID: ${userId}, CartID: ${cartId}`);
+    if (!cartId) return [];
 
-  const cartIdPromise =await this.getCartIdByUserId(userId);
-  
-  if (!cartIdPromise) {
-    throw new Error("Shopping cart not found for user");
-  }
-
-
-    const rows = await pool.execute<RowDataPacket[]>(
-
-      `
-      SELECT ci.Quantity, b.ISBN, b.Title, b.Authors, b.SellingPrice, b.Category
+    const [rows] = await pool.query<RowDataPacket[]>(`
+      SELECT ci.Quantity, b.ISBN, b.Title as title, b.SellingPrice as sellingPrice, b.Category as category,
+             p.Name as PublisherName,
+             GROUP_CONCAT(a.AuthorName SEPARATOR ', ') as authors
       FROM CartItems ci
       JOIN Books b ON ci.ISBN = b.ISBN
+      LEFT JOIN Authors a ON b.ISBN = a.BookISBN
+      LEFT JOIN Publishers p ON b.PubID = p.PubID
       WHERE ci.CartID = ?
-      `,
-      [cartIdPromise]
-    );
-    const items: CartItem[] = rows[0].map(row => ({
+      GROUP BY ci.Quantity, b.ISBN, b.Title, b.SellingPrice, b.Category, p.Name
+    `, [cartId]);
+
+    console.log(`[Mysql] getallCartItems. Retrieved ${rows.length} rows.`);
+    if (rows.length > 0) {
+      console.log(`[Mysql] First row sample:`, rows[0]);
+    }
+
+    return rows.map(row => ({
       quantity: row.Quantity,
       book: {
         ISBN: row.ISBN,
-        title: row.Title,
-        authors: row.Authors ? JSON.parse(row.Authors) : undefined,
-        sellingPrice: row.SellingPrice,
-        category: row.Category
+        title: row.title,
+        sellingPrice: row.sellingPrice,
+        category: row.category,
+        authors: row.authors ? row.authors.split(', ') : []
       }
     }));
-
-    return items;
   }
-
-
-
- async getCartItemQuantity(cartId: number, isbn: string): Promise<number | null> {
+  async getCartItemQuantity(cartId: number, isbn: string): Promise<number | null> {
 
     const rows = await pool.execute<RowDataPacket[]>(
       `
@@ -183,75 +178,77 @@ export class Mysql implements DataStore {
   }
   async getCartByUserId(UserID: number): Promise<ShoppingCart | null> {
 
-  const [cartRows] = await pool.execute<RowDataPacket[]>(
-    `
+    const [cartRows] = await pool.execute<RowDataPacket[]>(
+      `
     SELECT CartID
     FROM ShoppingCarts
     WHERE UserID = ?
-    `,
-    [UserID]
-  );
+      `,
+      [UserID]
+    );
 
-  if (cartRows.length === 0) return null;
+    if (cartRows.length === 0) return null;
 
-  const cartId = cartRows[0].CartID;
+    const cartId = cartRows[0].CartID;
 
-  const [itemRows] = await pool.execute<RowDataPacket[]>(
-    `
+    const [itemRows] = await pool.execute<RowDataPacket[]>(
+      `
     SELECT
       ci.Quantity,
       b.ISBN,
       b.Title,
-      b.Authors,
+      GROUP_CONCAT(DISTINCT a.AuthorName) as Authors,
       b.SellingPrice,
       b.Category
     FROM CartItems ci
     JOIN Books b ON ci.ISBN = b.ISBN
+    LEFT JOIN Authors a ON b.ISBN = a.BookISBN
     WHERE ci.CartID = ?
-    `,
-    [cartId]
-  );
+      GROUP BY ci.CartID, ci.ISBN
+      `,
+      [cartId]
+    );
 
-  const items: CartItem[] = itemRows.map(row => ({
-    quantity: row.Quantity,
-    book: {
-      ISBN: row.ISBN,
-      title: row.Title,
-      authors: row.Authors ? JSON.parse(row.Authors) : undefined,
-      sellingPrice: row.SellingPrice,
-      category: row.Category
-    }
-  }));
+    const items: CartItem[] = itemRows.map((row: any) => ({
+      quantity: row.Quantity,
+      book: {
+        ISBN: row.ISBN,
+        title: row.Title,
+        authors: row.Authors ? (typeof row.Authors === 'string' ? row.Authors.split(',').map((a: string) => a.trim()) : row.Authors) : [],
+        sellingPrice: row.SellingPrice,
+        category: row.Category
+      }
+    }));
 
-  return {
-    cartId,
-    UserID,
-    items
-  };
-
-
-}
+    return {
+      cartId,
+      UserID,
+      items
+    };
 
 
+  }
 
-   async createCartForUser(UserID: number): Promise<ShoppingCart> {
 
-        
+
+  async createCartForUser(UserID: number): Promise<ShoppingCart> {
+
+
     const cart = await this.getCartByUserId(UserID);
-  
+
     if (cart) throw new Error("cart already exists for this user");
 
 
-    const [result] =await pool.execute<ResultSetHeader>(
+    const [result] = await pool.execute<ResultSetHeader>(
       'INSERT INTO ShoppingCarts (UserID) VALUES (?)',
       [UserID]
     );
 
     return {
-        cartId: result.insertId,
-        UserID,
-        items: []
-    
+      cartId: result.insertId,
+      UserID,
+      items: []
+
 
     };
 
@@ -260,182 +257,186 @@ export class Mysql implements DataStore {
 
 
 
+  }
+
+
+  async addItemToCart(userId: number, isbn: string, quantity: number): Promise<void> {
+
+    const shoppingCartId = this.getCartIdByUserId(userId);
+    if (!shoppingCartId) {
+
+      throw new Error("Shopping cart not found for user");
     }
 
+    const result = await pool.execute<ResultSetHeader>(
+      'INSERT INTO CartItems (CartID, ISBN, Quantity) VALUES (?, ?, ?)',
+      [shoppingCartId, isbn, quantity]
+    );
 
-   async addItemToCart(userId: number, isbn: string, quantity: number): Promise<void> {
+    return;
 
-      const shoppingCartId = this.getCartIdByUserId(userId);
-      if (!shoppingCartId) {
+  }
+  async removeItemFromCart(userId: number, isbn: string): Promise<void> {
 
-        throw new Error("Shopping cart not found for user");
+    const shoppingCartId = this.getCartIdByUserId(userId);
+    if (!shoppingCartId) {
+      throw new Error("Shopping cart not found for user");
+    }
+    const result = await pool.execute<ResultSetHeader>(
+      'DELETE FROM CartItems WHERE CartID = ? AND ISBN = ?',
+      [shoppingCartId, isbn]
+    );
+    return;
+
+  }
+  async updateItemQuantity(userId: number, isbn: string, quantity: number): Promise<void> {
+    const shoppingCartId = this.getCartIdByUserId(userId);
+    if (!shoppingCartId) {
+      throw new Error("Shopping cart not found for user");
+    }
+    const result = await pool.execute<ResultSetHeader>(
+      'UPDATE CartItems SET Quantity = ? WHERE CartID = ? AND ISBN = ?',
+      [quantity, shoppingCartId, isbn]
+    );
+    return;
+
+  }
+  async clearCart(userId: number): Promise<void> {
+
+    const shoppingCartId = this.getCartIdByUserId(userId);
+    if (!shoppingCartId) {
+      throw new Error("Shopping cart not found for user");
+    }
+    const result = await pool.execute<ResultSetHeader>(
+      'DELETE FROM CartItems WHERE CartID = ?',
+      [shoppingCartId]
+    );
+    return;
+  }
+  async getCartItemByCartIdAndIsbn(cartId: number, isbn: string): Promise<CartItem | null> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `SELECT ci.Quantity, b.ISBN, b.Title, GROUP_CONCAT(DISTINCT a.AuthorName) as Authors, b.SellingPrice, b.Category 
+             FROM CartItems ci 
+             JOIN Books b ON ci.ISBN = b.ISBN 
+             LEFT JOIN Authors a ON b.ISBN = a.BookISBN 
+             WHERE ci.CartID = ? AND ci.ISBN = ?
+      GROUP BY ci.CartID, ci.ISBN`,
+      [cartId, isbn]
+    );
+    if (rows.length === 0) return null;
+    const row = rows[0];
+    return {
+      quantity: row.Quantity,
+      book: {
+        ISBN: row.ISBN,
+        title: row.Title,
+        authors: row.Authors ? (typeof row.Authors === 'string' ? row.Authors.split(',').map((a: string) => a.trim()) : row.Authors) : [],
+        sellingPrice: row.SellingPrice,
+        category: row.Category
       }
+    };
+  }
+  async createCartItem(cartId: number, isbn: string, quantity: number): Promise<{
+    cartId: number;
+    isbn: string;
+    quantity: number;
+  }> {
 
-        const result =await pool.execute<ResultSetHeader>(
-            'INSERT INTO CartItems (CartID, ISBN, Quantity) VALUES (?, ?, ?)',
-            [shoppingCartId, isbn, quantity]
-        );
-       
-        return;
+    const [result] = await pool.execute<ResultSetHeader>(
+      'INSERT INTO CartItems (CartID, ISBN, Quantity) VALUES (?, ?, ?)',
+      [cartId, isbn, quantity]
+    );
 
+    if (result.affectedRows !== 1) {
+      throw new Error("Failed to insert cart item");
     }
-   async removeItemFromCart(userId: number, isbn: string): Promise<void> {
-
-        const shoppingCartId = this.getCartIdByUserId(userId);
-        if (!shoppingCartId) {
-            throw new Error("Shopping cart not found for user");
-        }
-        const result = await pool.execute<ResultSetHeader>(
-            'DELETE FROM CartItems WHERE CartID = ? AND ISBN = ?',
-            [shoppingCartId, isbn]
-        );
-        return;
-
-  }
-   async updateItemQuantity(userId: number, isbn: string, quantity: number): Promise<void> {
-        const shoppingCartId = this.getCartIdByUserId(userId);
-        if (!shoppingCartId) {
-            throw new Error("Shopping cart not found for user");
-        }
-        const result = await pool.execute<ResultSetHeader>(
-            'UPDATE CartItems SET Quantity = ? WHERE CartID = ? AND ISBN = ?',
-            [quantity, shoppingCartId, isbn]
-        );
-        return;
-
-  }
-   async clearCart(userId: number): Promise<void> {
-     
-        const shoppingCartId = this.getCartIdByUserId(userId);
-        if (!shoppingCartId) {
-            throw new Error("Shopping cart not found for user");
-        }
-        const result = await pool.execute<ResultSetHeader>(
-            'DELETE FROM CartItems WHERE CartID = ?',
-            [shoppingCartId]
-        );
-        return;
-  }
-    async getCartItemByCartIdAndIsbn(cartId: number, isbn: string): Promise<CartItem | null> {
-        const [rows] = await pool.execute<RowDataPacket[]>(
-            'SELECT ci.Quantity, b.ISBN, b.Title, b.Authors, b.SellingPrice, b.Category FROM CartItems ci JOIN Books b ON ci.ISBN = b.ISBN WHERE ci.CartID = ? AND ci.ISBN = ?',
-            [cartId, isbn]
-        );
-        if (rows.length === 0) return null;
-        const row = rows[0];
-        return {
-            quantity: row.Quantity,
-            book: {
-                ISBN: row.ISBN,
-                title: row.Title,
-                authors: row.Authors ? JSON.parse(row.Authors) : undefined,
-                sellingPrice: row.SellingPrice,
-                category: row.Category
-            }
-        };
-    }
-   async createCartItem(cartId: number, isbn: string, quantity: number): Promise<{
-        cartId: number;
-        isbn: string;
-        quantity: number;
-   }> {
-
-        const [result] = await pool.execute<ResultSetHeader>(
-            'INSERT INTO CartItems (CartID, ISBN, Quantity) VALUES (?, ?, ?)',
-            [cartId, isbn, quantity]
-        );
-
-        if (result.affectedRows !== 1) {
-  throw new Error("Failed to insert cart item");
-}
 
 
-        return {
-           
-            cartId,
-            isbn,
-            quantity
-        };
+    return {
+
+      cartId,
+      isbn,
+      quantity
+    };
 
   }
 
-  
 
 
 
-    private async getCustomerCoreByUserId(userId: number) {
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    `
+
+  private async getCustomerCoreByUserId(userId: number) {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      `
     SELECT
       c.FirstName AS firstName,
       c.LastName AS lastName,
       c.ShippingAddress AS shippingAddress
     FROM Customers c
     WHERE c.UserID = ?
-    `,
-    [userId]
-  );
+      `,
+      [userId]
+    );
 
-  if (rows.length === 0) return null;
-  return rows[0];
-}
- 
- async getCustomerById(userId: number): Promise<Customer | null> {
-  const user = await this.getById(userId);
-  if (!user) return null;
+    if (rows.length === 0) return null;
+    return rows[0];
+  }
 
-  const customerRow = await this.getCustomerCoreByUserId(userId);
-  if (!customerRow) return null;
+  async getCustomerById(userId: number): Promise<Customer | null> {
+    const user = await this.getById(userId);
+    if (!user) return null;
 
-  return {
-    ...user,
-    FirstName: customerRow.firstName,
-    LastName: customerRow.lastName,
-    ShippingAddress: customerRow.ShippingAddress
-  };
-}
+    const customerRow = await this.getCustomerCoreByUserId(userId);
+    if (!customerRow) return null;
 
-  async getCustomerByUsername(username: string): Promise<Customer | null> 
-  {
+    return {
+      ...user,
+      FirstName: customerRow.firstName,
+      LastName: customerRow.lastName,
+      ShippingAddress: customerRow.shippingAddress
+    };
+  }
+
+  async getCustomerByUsername(username: string): Promise<Customer | null> {
     const user = await this.getByUsername(username);
     if (!user) return null;
 
     const customerRow = await this.getCustomerCoreByUserId(user.UserID);
     if (!customerRow) return null;
     return {
-    
-        ...user,
-        FirstName: customerRow.firstName,
-        LastName: customerRow.lastName,
-        ShippingAddress: customerRow.ShippingAddress
+
+      ...user,
+      FirstName: customerRow.firstName,
+      LastName: customerRow.lastName,
+      ShippingAddress: customerRow.shippingAddress
     }
-}
+  }
 
   async getUserPhones(userId: number): Promise<string[]> {
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    'SELECT PhoneNumber FROM User_Phones WHERE UserID = ?',
-    [userId]
-  );
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      'SELECT PhoneNumber FROM User_Phones WHERE UserID = ?',
+      [userId]
+    );
 
-  return rows.map(r => r.PhoneNumber);
-}
+    return rows.map(r => r.PhoneNumber);
+  }
 
-    async getCustomerByEmail(email: string): Promise<Customer | null> {
+  async getCustomerByEmail(email: string): Promise<Customer | null> {
 
-        const user = await this.getuserByEmail(email);
-        if (!user) return null;
-        const customerRow = await this.getCustomerCoreByUserId(user.UserID);
-        if (!customerRow) return null;
-        return {
-            ...user,
-            FirstName: customerRow.firstName,
-            LastName: customerRow.lastName,
-            ShippingAddress: customerRow.shippingAddress
-        };
+    const user = await this.getuserByEmail(email);
+    if (!user) return null;
+    const customerRow = await this.getCustomerCoreByUserId(user.UserID);
+    if (!customerRow) return null;
+    return {
+      ...user,
+      FirstName: customerRow.firstName,
+      LastName: customerRow.lastName,
+      ShippingAddress: customerRow.shippingAddress
+    };
 
-     
-    }
-   async createCustomer(UserID: number, input: { ShippingAddress: string; FirstName: string; LastName: string; }): Promise<Customer> {
+
+  }
+  async createCustomer(UserID: number, input: { ShippingAddress: string; FirstName: string; LastName: string; }): Promise<Customer> {
 
 
     const user = await this.getById(UserID);
@@ -449,121 +450,152 @@ export class Mysql implements DataStore {
       [UserID, ShippingAddress, FirstName, LastName]
     );
     // ATOMIC OPERATION: Create cart for user immediately after creating customer
-    
+
     await this.createCartForUser(UserID);
 
     return {
       ...user,
       ShippingAddress,
-        FirstName,
-        LastName 
+      FirstName,
+      LastName
     };
 
 
-   }
+  }
 
-   async getById(id: number): Promise<User | null> {
+  async getById(id: number): Promise<User | null> {
 
-       const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE UserID = ?', [id]);
-        if (rows.length === 0) return null;
-
-        
-        return rows[0] as User;
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE UserID = ?', [id]);
+    if (rows.length === 0) return null;
 
 
+    return rows[0] as User;
 
 
-}
-   async getByUsername(username: string): Promise<User | null> {
-        const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE username = ?', [username]);
-        if (rows.length === 0) return null;
-        return rows[0] as User;
-    
-    
+
+
+  }
+  async getByUsername(username: string): Promise<User | null> {
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE username = ?', [username]);
+    if (rows.length === 0) return null;
+    return rows[0] as User;
+
+
+  }
+  async getuserByEmail(email: string): Promise<User | null> {
+
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE email = ?', [email]);
+    if (rows.length === 0) return null;
+    return rows[0] as User;
+
+
+  }
+  async createUser(input: Omit<User, "UserID">): Promise<User> {
+    const { Username, email, phones, Password } = input;
+
+    const [result] = await pool.execute<ResultSetHeader>(
+      'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+      [Username, email, Password]
+    );
+    const UserID = result.insertId;
+    for (const phone of phones) {
+      await pool.execute<ResultSetHeader>(
+        'INSERT INTO User_Phones (UserID, PhoneNumber) VALUES (?, ?)',
+        [UserID, phone]
+      );
     }
-  async  getuserByEmail(email: string): Promise<User | null> {
-
-        const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE email = ?', [email]);
-        if (rows.length === 0) return null;
-        return rows[0] as User;
+    return { UserID, Username, email, phones, Password };
 
 
-}
-   async createUser(input: Omit<User, "UserID">): Promise<User> {
-        const { Username, email, phones, Password } = input;
+  }
 
-        const [result] = await pool.execute<ResultSetHeader>(
-            'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-            [Username, email, Password]
-        );
-        const UserID = result.insertId;
-        for (const phone of phones) {
-            await pool.execute<ResultSetHeader>(
-                'INSERT INTO User_Phones (UserID, PhoneNumber) VALUES (?, ?)',
-                [UserID, phone]
-            );
-        }
-        return {  UserID, Username, email, phones, Password };
+  async updatePassword(userId: number, password: string): Promise<void> {
+    await pool.execute('UPDATE Users SET Password = ? WHERE UserID = ?', [password, userId]);
+  }
 
+  async updateEmail(userId: number, email: string): Promise<void> {
+    await pool.execute('UPDATE Users SET Email = ? WHERE UserID = ?', [email, userId]);
+  }
 
+  async updateCustomerDetails(userId: number, input: { firstName?: string; lastName?: string; shippingAddress?: string }): Promise<void> {
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (input.firstName !== undefined) {
+      updates.push('FirstName = ?');
+      values.push(input.firstName);
+    }
+    if (input.lastName !== undefined) {
+      updates.push('LastName = ?');
+      values.push(input.lastName);
+    }
+    if (input.shippingAddress !== undefined) {
+      updates.push('ShippingAddress = ?');
+      values.push(input.shippingAddress);
     }
 
-  async  getAdminById(id: number): Promise<Admin | null> {
-        const admin = await this.getById(id);
-        if (!admin) return null;
-        return admin as Admin;
-}
+    if (updates.length === 0) return;
 
-   async getAdminByUsername(username: string): Promise<Admin | null> {
-        const admin = await this.getByUsername(username);
-        if (!admin) return null;
-        return admin as Admin;
-    }
-   async getAdminByEmail(email: string): Promise<Admin | null> {
-        const admin = await this.getuserByEmail(email);
-        if (!admin) return null;
-        return admin as Admin;
-    }
-  async  createNewAdmin(admin: Admin): Promise<Admin> {
-        const user = await this.createUser(admin);
-        return user as Admin;
-    }
+    values.push(userId);
+    await pool.execute(`UPDATE Customers SET ${updates.join(', ')} WHERE UserID = ? `, values);
+  }
 
-    async existsByEmail(email: string): Promise<boolean> {
-  const [rows] = await pool.execute<RowDataPacket[]>(
-    'SELECT 1 FROM Users WHERE Email = ? LIMIT 1',
-    [email]
-  );
-  return rows.length > 0;
-}
-async existsByUsername(username: string): Promise<boolean> {
+  async getAdminById(id: number): Promise<Admin | null> {
+    const admin = await this.getById(id);
+    if (!admin) return null;
+    return admin as Admin;
+  }
+
+  async getAdminByUsername(username: string): Promise<Admin | null> {
+    const admin = await this.getByUsername(username);
+    if (!admin) return null;
+    return admin as Admin;
+  }
+  async getAdminByEmail(email: string): Promise<Admin | null> {
+    const admin = await this.getuserByEmail(email);
+    if (!admin) return null;
+    return admin as Admin;
+  }
+  async createNewAdmin(admin: Admin): Promise<Admin> {
+    const user = await this.createUser(admin);
+    return user as Admin;
+  }
+
+  async existsByEmail(email: string): Promise<boolean> {
     const [rows] = await pool.execute<RowDataPacket[]>(
-        'SELECT 1 FROM Users WHERE Username = ? LIMIT 1',
-        [username]
+      'SELECT 1 FROM Users WHERE Email = ? LIMIT 1',
+      [email]
+    );
+    return rows.length > 0;
+  }
+  async existsByUsername(username: string): Promise<boolean> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      'SELECT 1 FROM Users WHERE Username = ? LIMIT 1',
+      [username]
     );
     return rows.length > 0;
 
 
-}
-    async getBookById(id: number): Promise<Book | null> {
-        const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM books WHERE id = ?', [id]);
-        if (rows.length === 0) return null;
-        return rows[0] as Book;
-    }
+  }
+  async getBookById(id: number): Promise<Book | null> {
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM books WHERE id = ?', [id]);
+    if (rows.length === 0) return null;
+    return rows[0] as Book;
+  }
 
   private mapRowToBook(row: any): Book {
     console.log('DEBUG MAP ROW:', row);
-    
+
     let authors: string[] = [];
     const rawAuthors = row.authors || row.Author || row.author || '[]';
     try {
       if (typeof rawAuthors === 'string') {
         // If it looks like JSON array (old logic or backup)
         if (rawAuthors.trim().startsWith('[')) {
-           authors = JSON.parse(rawAuthors);
+          authors = JSON.parse(rawAuthors);
         } else {
-           // If it came from GROUP_CONCAT, it is comma separated
-           authors = rawAuthors.split(',').map(a => a.trim());
+          // If it came from GROUP_CONCAT, it is comma separated
+          authors = rawAuthors.split(',').map(a => a.trim());
         }
       } else if (Array.isArray(rawAuthors)) {
         authors = rawAuthors;
@@ -600,20 +632,20 @@ async existsByUsername(username: string): Promise<boolean> {
     if (filter.title) {
       query += " AND (books.title LIKE ? OR Publishers.Name LIKE ? OR EXISTS (SELECT 1 FROM Authors A2 WHERE A2.BookISBN = books.ISBN AND A2.AuthorName LIKE ?))";
       countQuery += " AND (books.title LIKE ? OR Publishers.Name LIKE ? OR EXISTS (SELECT 1 FROM Authors A2 WHERE A2.BookISBN = books.ISBN AND A2.AuthorName LIKE ?))";
-      params.push(`%${filter.title}%`, `%${filter.title}%`, `%${filter.title}%`);
+      params.push(`% ${filter.title} % `, ` % ${filter.title} % `, ` % ${filter.title} % `);
     }
 
     if (filter.category && filter.category.length > 0) {
       const placeholders = filter.category.map(() => "?").join(", ");
-      query += ` AND books.category IN (${placeholders})`;
-      countQuery += ` AND books.category IN (${placeholders})`;
+      query += ` AND books.category IN(${placeholders})`;
+      countQuery += ` AND books.category IN(${placeholders})`;
       params.push(...filter.category);
     }
 
     if (filter.author) {
-      query += " AND Authors.AuthorName LIKE ?"; 
+      query += " AND Authors.AuthorName LIKE ?";
       countQuery += " AND Authors.AuthorName LIKE ?";
-      params.push(`%${filter.author}%`);
+      params.push(`% ${filter.author} % `);
     }
 
     query += " GROUP BY books.ISBN";
@@ -664,7 +696,7 @@ async existsByUsername(username: string): Promise<boolean> {
     values.push(ISBN);
 
     const [result] = await pool.execute<ResultSetHeader>(
-      `UPDATE books SET ${fields.join(", ")} WHERE ISBN = ?`,
+      `UPDATE books SET ${fields.join(", ")} WHERE ISBN = ? `,
       values
     );
 
@@ -692,7 +724,7 @@ async existsByUsername(username: string): Promise<boolean> {
     const finalLimit = Number(limit);
     const finalOffset = Number(offset);
     console.log(
-      `[Mysql] listAllBooks called with limit: ${finalLimit}, offset: ${finalOffset}`
+      `[Mysql] listAllBooks called with limit: ${finalLimit}, offset: ${finalOffset} `
     );
     return new Promise(async (resolve, reject) => {
       try {
@@ -708,7 +740,7 @@ async existsByUsername(username: string): Promise<boolean> {
         const total = (countResult[0] as RowDataPacket[])[0].total;
 
         console.log(
-          `[Mysql] listAllBooks retrieved ${rows.length} books. Total count: ${total}`
+          `[Mysql] listAllBooks retrieved ${rows.length} books.Total count: ${total} `
         );
         const books = rows.map(row => this.mapRowToBook(row));
         resolve({ books, total });
@@ -754,9 +786,9 @@ async existsByUsername(username: string): Promise<boolean> {
     try {
       await connection.beginTransaction();
 
-   
-        let pubIdToUse = await this.getOrCreatePublisher(connection, book.publisher as string);
-      
+
+      let pubIdToUse = await this.getOrCreatePublisher(connection, book.publisher as string);
+
 
       // If still no PubID, maybe default to 1 or throw specific error, 
       // but getOrCreatePublisher should handle it if publisher name exists.
@@ -836,4 +868,3 @@ async existsByUsername(username: string): Promise<boolean> {
     return rows;
   }
 }
-

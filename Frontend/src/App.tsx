@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Login from './Components/Login';
 import Signup from './Components/Signup';
 import CustomerHome from './Components/CustomerHome';
@@ -12,6 +12,8 @@ import AdminDashboard from './Components/AdminDashboard';
 import ManageBooks from './Components/ManageBooks';
 import PublisherOrders from './Components/PublisherOrders';
 import Reports from './Components/Reports';
+import * as authService from './services/authService';
+import * as cartService from './services/cartService';
 
 export interface User {
   id: string;
@@ -43,14 +45,76 @@ export interface Order {
 }
 
 function App() {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize user from local storage via authService
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = authService.getCurrentUser();
+    if (storedUser) {
+      // Map stored user to User interface if needed, relying on data consistency for now
+      // Or re-mapping similar to Login.tsx if storage format differs
+      const role = storedUser.role ? storedUser.role.toLowerCase() : 'customer';
+      return {
+        id: storedUser.UserID?.toString() || storedUser.id,
+        username: storedUser.Username || storedUser.username,
+        role: role as 'admin' | 'customer',
+        firstName: storedUser.FirstName || storedUser.firstName,
+        lastName: storedUser.LastName || storedUser.lastName,
+        email: storedUser.email,
+        phone: storedUser.phones?.[0] || storedUser.phone,
+        address: storedUser.ShippingAddress || storedUser.address
+      };
+    }
+    return null;
+  });
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = authService.getToken();
+      if (token) {
+        try {
+          const profileData = await authService.getUserProfile();
+          console.log('[App] Parsed profile data:', profileData);
+          if (profileData) {
+            // Adapt backend response to frontend User interface if necessary
+            const role = (profileData.Role || profileData.role || 'customer').toLowerCase();
+            const updatedUser: User = {
+              id: profileData.UserID?.toString() || profileData.id,
+              username: profileData.Username || profileData.username,
+              role: role as 'admin' | 'customer',
+              firstName: profileData.FirstName || profileData.firstName,
+              lastName: profileData.LastName || profileData.lastName,
+              email: profileData.email || profileData.Email,
+              phone: profileData.phones?.[0] || profileData.phone,
+              address: profileData.ShippingAddress || profileData.shippingAddress || profileData.address
+            };
+            setUser(updatedUser);
+          }
+        } catch (error) {
+          console.error("Failed to load user profile", error);
+        }
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // Fetch cart when user logs in
+  useEffect(() => {
+    if (user) {
+      cartService.getCart()
+        .then(data => setCart(data))
+        .catch(err => console.error("Failed to load cart", err));
+    } else {
+      setCart([]); // Reset cart on logout/if no user (or keep local if we want persistence across reloads for guests, but simpler to reset)
+    }
+  }, [user]);
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
   };
 
   const handleLogout = () => {
+    authService.logout();
     setUser(null);
     setCart([]);
   };
@@ -59,34 +123,73 @@ function App() {
     setUser(prevUser => (prevUser ? { ...prevUser, ...updates } : prevUser));
   };
 
-  const addToCart = (book: Book, quantity: number = 1) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.book.ISBN === book.ISBN);
-      if (existingItem) {
-        return prevCart.map(item =>
-          item.book.ISBN === book.ISBN
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+  const addToCart = async (book: Book, quantity: number = 1) => {
+    if (user) {
+      try {
+        await cartService.addToCart(book.ISBN, quantity);
+        const updatedCart = await cartService.getCart();
+        setCart(updatedCart);
+      } catch (error) {
+        console.error("Failed to add to cart", error);
       }
-      return [...prevCart, { book, quantity }];
-    });
+    } else {
+      setCart(prevCart => {
+        const existingItem = prevCart.find(item => item.book.ISBN === book.ISBN);
+        if (existingItem) {
+          return prevCart.map(item =>
+            item.book.ISBN === book.ISBN
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          );
+        }
+        return [...prevCart, { book, quantity }];
+      });
+    }
   };
 
-  const updateCartQuantity = (isbn: string, quantity: number) => {
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item.book.ISBN === isbn ? { ...item, quantity } : item
-      )
-    );
+  const updateCartQuantity = async (isbn: string, quantity: number) => {
+    if (user) {
+      try {
+        await cartService.updateQuantity(isbn, quantity);
+        const updatedCart = await cartService.getCart();
+        setCart(updatedCart);
+      } catch (error) {
+        console.error("Failed to update cart quantity", error);
+      }
+    } else {
+      setCart(prevCart =>
+        prevCart.map(item =>
+          item.book.ISBN === isbn ? { ...item, quantity } : item
+        )
+      );
+    }
   };
 
-  const removeFromCart = (isbn: string) => {
-    setCart(prevCart => prevCart.filter(item => item.book.ISBN !== isbn));
+  const removeFromCart = async (isbn: string) => {
+    if (user) {
+      try {
+        await cartService.removeFromCart(isbn);
+        const updatedCart = await cartService.getCart();
+        setCart(updatedCart);
+      } catch (error) {
+        console.error("Failed to remove from cart", error);
+      }
+    } else {
+      setCart(prevCart => prevCart.filter(item => item.book.ISBN !== isbn));
+    }
   };
 
-  const clearCart = () => {
-    setCart([]);
+  const clearCart = async () => {
+    if (user) {
+      try {
+        await cartService.clearCart();
+        setCart([]);
+      } catch (e) {
+        console.error("Failed to clear cart", e);
+      }
+    } else {
+      setCart([]);
+    }
   };
 
   return (
