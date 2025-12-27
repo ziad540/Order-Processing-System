@@ -23,9 +23,9 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
     publisher: '',
     publicationYear: new Date().getFullYear(),
     category: 'Science',
-    sellingPrice: 0,
-    stockLevel: 0,
-    threshold: 10,
+    sellingPrice: '' as any,
+    stockLevel: '' as any,
+    threshold: '' as any,
     coverImage: ''
   });
 
@@ -62,7 +62,28 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
     if (name === 'authors') {
       setFormData((prev: any) => ({ ...prev, authors: value.split(',').map(a => a.trim()) }));
     } else if (name === 'sellingPrice' || name === 'stockLevel' || name === 'threshold' || name === 'publicationYear') {
-      setFormData((prev: any) => ({ ...prev, [name]: parseFloat(value) || 0 }));
+      if (value === '') {
+        setFormData((prev: any) => ({ ...prev, [name]: '' }));
+        return;
+      }
+
+      // Enforce integer constraints
+      if (['stockLevel', 'threshold', 'publicationYear'].includes(name)) {
+        if (value.includes('.')) return;
+      }
+
+      // Enforce year length
+      if (name === 'publicationYear' && value.length > 4) {
+        return;
+      }
+
+      const parsed = (name === 'publicationYear' || name === 'stockLevel' || name === 'threshold')
+        ? Number.parseInt(value, 10)
+        : Number.parseFloat(value);
+
+      if (parsed < 0) return; // Prevent negative values
+
+      setFormData((prev: any) => ({ ...prev, [name]: Number.isFinite(parsed) ? parsed : '' }));
     } else {
       setFormData((prev: any) => ({ ...prev, [name]: value }));
     }
@@ -85,6 +106,31 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (
+      (formData as any).sellingPrice === '' ||
+      (formData as any).stockLevel === '' ||
+      (formData as any).threshold === '' ||
+      (formData as any).publicationYear === ''
+    ) {
+      alert('Please fill in all numeric fields (Price, Stock, Threshold, Year).');
+      return;
+    }
+
+    const sellingPrice = Number((formData as any).sellingPrice);
+    const stockLevel = Number((formData as any).stockLevel);
+    const threshold = Number((formData as any).threshold);
+    const publicationYear = Number((formData as any).publicationYear);
+
+    if (
+      !Number.isFinite(sellingPrice) ||
+      !Number.isFinite(stockLevel) ||
+      !Number.isFinite(threshold) ||
+      !Number.isFinite(publicationYear)
+    ) {
+      alert('Please enter valid numbers for Price, Stock, Threshold, and Year.');
+      return;
+    }
+
     try {
       if (selectedFile) {
         // Use FormData for file upload
@@ -93,11 +139,11 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
         data.append('title', formData.title!);
         data.append('authors', JSON.stringify(formData.authors || []));
         data.append('publisher', formData.publisher!);
-        data.append('publicationYear', String(formData.publicationYear));
+        data.append('publicationYear', String(publicationYear));
         data.append('category', formData.category!);
-        data.append('sellingPrice', String(formData.sellingPrice));
-        data.append('stockLevel', String(formData.stockLevel));
-        data.append('threshold', String(formData.threshold));
+        data.append('sellingPrice', String(sellingPrice));
+        data.append('stockLevel', String(stockLevel));
+        data.append('threshold', String(threshold));
         data.append('PubID', '1'); // Default PubID as it might be required by backend logic if not in form
         data.append('coverImage', selectedFile);
 
@@ -112,11 +158,11 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
           title: formData.title!,
           authors: formData.authors!,
           publisher: formData.publisher!,
-          publicationYear: formData.publicationYear!,
+          publicationYear,
           category: formData.category as any,
-          sellingPrice: formData.sellingPrice!,
-          stockLevel: formData.stockLevel!,
-          threshold: formData.threshold!,
+          sellingPrice,
+          stockLevel,
+          threshold,
           coverImage: formData.coverImage!,
           PubID: 1
         };
@@ -144,9 +190,22 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
     e.preventDefault();
     if (editingBook) {
       try {
+        if ((formData as any).sellingPrice === '' || (formData as any).stockLevel === '') {
+          alert('Please enter valid numbers for Price and Stock.');
+          return;
+        }
+
+        const sellingPrice = Number((formData as any).sellingPrice);
+        const stockLevel = Number((formData as any).stockLevel);
+
+        if (!Number.isFinite(sellingPrice) || !Number.isFinite(stockLevel)) {
+          alert('Please enter valid numbers for Price and Stock.');
+          return;
+        }
+
         await bookService.updateBook(editingBook.ISBN, {
-          sellingPrice: formData.sellingPrice,
-          stockLevel: formData.stockLevel
+          sellingPrice,
+          stockLevel
         });
         await fetchBooks(); // Refresh list
         setEditingBook(null);
@@ -167,9 +226,9 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
       publisher: '',
       publicationYear: new Date().getFullYear(),
       category: 'Science',
-      sellingPrice: 0,
-      stockLevel: 0,
-      threshold: 10,
+      sellingPrice: '' as any,
+      stockLevel: '' as any,
+      threshold: '' as any,
       coverImage: ''
     });
   };
@@ -256,6 +315,8 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                       required
+                      min="1000"
+                      max={new Date().getFullYear() + 1}
                     />
                   </div>
                   <div>
@@ -280,7 +341,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                       type="number"
                       name="sellingPrice"
                       step="0.01"
-                      value={formData.sellingPrice}
+                      value={(formData as any).sellingPrice ?? ''}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                       required
@@ -291,10 +352,12 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     <input
                       type="number"
                       name="stockLevel"
-                      value={formData.stockLevel}
+                      value={(formData as any).stockLevel ?? ''}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                       required
+                      min="0"
+                      step="1"
                     />
                   </div>
                   <div>
@@ -302,10 +365,12 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     <input
                       type="number"
                       name="threshold"
-                      value={formData.threshold}
+                      value={(formData as any).threshold ?? ''}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                       required
+                      min="0"
+                      step="1"
                     />
                   </div>
                   <div className="col-span-2">
@@ -365,7 +430,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     type="number"
                     name="sellingPrice"
                     step="0.01"
-                    value={formData.sellingPrice}
+                    value={(formData as any).sellingPrice ?? ''}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                     required
@@ -376,10 +441,12 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                   <input
                     type="number"
                     name="stockLevel"
-                    value={formData.stockLevel}
+                    value={(formData as any).stockLevel ?? ''}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                     required
+                    min="0"
+                    step="1"
                   />
                 </div>
                 <div className="flex justify-end space-x-3 pt-4">
