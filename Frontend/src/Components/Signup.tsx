@@ -38,7 +38,7 @@ export default function Signup() {
               <BookOpen className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-foreground mb-2">Create Account</h1>
-            <p className="text-muted-foreground">Join University Bookstore</p>
+            <p className="text-muted-foreground">Join Our Bookstore</p>
           </div>
 
           {/* Sign Up Form */}

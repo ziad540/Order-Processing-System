@@ -412,7 +412,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search books by title, author, or publisher..."
+              placeholder="Search books by Title, Author or Publisher..."
               className="w-full pl-12 pr-4 py-3 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

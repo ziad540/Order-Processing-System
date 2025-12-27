@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, ShoppingCart, Package, LogOut } from 'lucide-react';
+import { BookOpen, ShoppingCart, Package, LogOut, User as UserIcon } from 'lucide-react';
 import { User } from '../App';
 import { CartItem } from '../App';
 import ThemeToggle from './ThemeToggle';
@@ -25,7 +25,7 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
             <div className="flex items-center justify-center w-10 h-10 bg-indigo-600 dark:bg-primary rounded-lg">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <span className="text-foreground">University Bookstore</span>
+            <span className="text-foreground">Bookstore</span>
           </Link>
 
           {/* Navigation */}
@@ -69,6 +69,18 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
             >
               <Package className="w-5 h-5" />
               <span>My Orders</span>
+            </Link>
+
+            <Link
+              to="/customer/profile"
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                isActive('/customer/profile')
+                  ? 'text-indigo-600 bg-indigo-50 dark:text-foreground dark:bg-muted'
+                  : 'text-muted-foreground hover:text-indigo-600 hover:bg-muted dark:hover:text-primary'
+              }`}
+            >
+              <UserIcon className="w-5 h-5" />
+              <span>Profile</span>
             </Link>
           </div>
 

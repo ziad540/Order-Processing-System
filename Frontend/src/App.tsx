@@ -7,6 +7,7 @@ import BookDetails from './Components/BookDetails';
 import ShoppingCart from './Components/ShoppingCart';
 import Checkout from './Components/Checkout';
 import OrderHistory from './Components/OrderHistory';
+import CustomerProfile from './Components/CustomerProfile';
 import AdminDashboard from './Components/AdminDashboard';
 import ManageBooks from './Components/ManageBooks';
 import PublisherOrders from './Components/PublisherOrders';
@@ -52,6 +53,10 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     setCart([]);
+  };
+
+  const updateUser = (updates: Partial<User>) => {
+    setUser(prevUser => (prevUser ? { ...prevUser, ...updates } : prevUser));
   };
 
   const addToCart = (book: Book, quantity: number = 1) => {
@@ -143,6 +148,16 @@ function App() {
             element={
               user?.role === 'customer' ? (
                 <OrderHistory user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+          <Route
+            path="/customer/profile"
+            element={
+              user?.role === 'customer' ? (
+                <CustomerProfile user={user} onLogout={handleLogout} cart={cart} onUpdateUser={updateUser} />
               ) : (
                 <Navigate to="/login" />
               )

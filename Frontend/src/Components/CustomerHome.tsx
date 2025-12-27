@@ -62,7 +62,7 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by title or author..."
+              placeholder="Search by Title, Author or Publisher..."
               className="w-full pl-12 pr-4 py-3 border border-border bg-background rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

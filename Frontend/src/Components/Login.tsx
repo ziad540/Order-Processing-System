@@ -47,7 +47,7 @@ export default function Login({ onLogin }: LoginProps) {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 dark:bg-primary rounded-full mb-4">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-foreground mb-2">University Bookstore</h1>
+            <h1 className="text-foreground mb-2">Bookstore</h1>
             <p className="text-muted-foreground">Order Processing System</p>
           </div>
 
@@ -109,15 +109,6 @@ export default function Login({ onLogin }: LoginProps) {
                 Sign up
               </Link>
             </p>
-          </div>
-
-          {/* Demo Credentials */}
-          <div className="mt-8 p-4 bg-muted rounded-lg border border-border">
-            <p className="text-foreground mb-2">Demo Credentials:</p>
-            <div className="space-y-1">
-              <p className="text-muted-foreground">Admin: admin / admin</p>
-              <p className="text-muted-foreground">Customer: any username / any password</p>
-            </div>
           </div>
         </div>
       </div>
