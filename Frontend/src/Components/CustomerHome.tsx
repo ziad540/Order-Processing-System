@@ -42,28 +42,28 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-gray-900 mb-2">Browse Books</h1>
-          <p className="text-gray-600">Discover our collection of academic books</p>
+          <h1 className="text-foreground mb-2">Browse Books</h1>
+          <p className="text-muted-foreground">Discover our collection of academic books</p>
         </div>
 
         {/* Search Bar */}
         <div className="mb-8">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className="h-5 w-5 text-muted-foreground" />
             </div>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by ISBN, title, author, or publisher..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Search by title or author..."
+              className="w-full pl-12 pr-4 py-3 border border-border bg-background rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
@@ -75,8 +75,8 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
               key={category}
               onClick={() => setSelectedCategory(category)}
               className={`px-4 py-2 rounded-lg transition-colors ${selectedCategory === category
-                ? 'bg-indigo-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300 hover:border-indigo-600 hover:text-indigo-600'
+                ? 'bg-indigo-600 text-white dark:bg-primary dark:text-primary-foreground hover:bg-indigo-700 dark:hover:bg-primary/90'
+                : 'bg-card text-foreground border border-border hover:border-indigo-600 hover:text-indigo-600 dark:hover:border-primary dark:hover:text-primary'
                 }`}
             >
               {category}
@@ -86,19 +86,19 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
 
         {/* Results Count */}
         <div className="mb-6">
-          <p className="text-gray-700">
+          <p className="text-muted-foreground">
             Showing {books.length} {books.length === 1 ? 'book' : 'books'}
-            {isLoading && <span className="ml-2 text-indigo-600">Loading...</span>}
+            {isLoading && <span className="ml-2 text-indigo-600 dark:text-primary">Loading...</span>}
           </p>
         </div>
 
         {/* Books Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {books.map(book => (
-            <div key={book.ISBN} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+            <div key={book.ISBN} className="bg-card text-card-foreground rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-lg transition-shadow">
               {/* Book Cover */}
               <Link to={`/customer/book/${book.ISBN}`}>
-                <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
+                <div className="aspect-[3/4] bg-muted overflow-hidden">
                   <img
                     src={book.coverImage}
                     alt={book.title}
@@ -110,33 +110,33 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
               {/* Book Info */}
               <div className="p-4">
                 <Link to={`/customer/book/${book.ISBN}`}>
-                  <h3 className="text-gray-900 mb-2 hover:text-indigo-600 line-clamp-2">
+                  <h3 className="text-foreground mb-2 hover:text-indigo-600 dark:hover:text-primary line-clamp-2">
                     {book.title}
                   </h3>
                 </Link>
 
-                <p className="text-gray-600 mb-1 line-clamp-1">
+                <p className="text-muted-foreground mb-1 line-clamp-1">
                   {book.authors?.join(', ') || 'Unknown Author'}
                 </p>
 
-                <p className="text-gray-500 mb-2">{book.publisher}</p>
+                <p className="text-muted-foreground mb-2">{book.publisher}</p>
 
                 <div className="flex items-center justify-between mb-3">
-                  <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs">
+                  <span className="inline-block px-2 py-1 bg-indigo-50 text-indigo-700 dark:bg-muted dark:text-foreground rounded text-xs">
                     {book.category}
                   </span>
-                  <span className="text-gray-500">ISBN: {book.ISBN ? book.ISBN.slice(-6) : 'N/A'}</span>
+                  <span className="text-muted-foreground">ISBN: {book.ISBN ? book.ISBN.slice(-6) : 'N/A'}</span>
                 </div>
 
                 {/* Availability */}
                 <div className="mb-3">
                   {book.stockLevel > 0 ? (
-                    <div className="flex items-center text-green-600">
+                    <div className="flex items-center text-green-600 dark:text-green-400">
                       <CheckCircle className="w-4 h-4 mr-1" />
                       <span>In Stock ({book.stockLevel} available)</span>
                     </div>
                   ) : (
-                    <div className="flex items-center text-red-600">
+                    <div className="flex items-center text-red-600 dark:text-red-400">
                       <AlertCircle className="w-4 h-4 mr-1" />
                       <span>Out of Stock</span>
                     </div>
@@ -145,17 +145,17 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
 
                 {/* Price & Add to Cart */}
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-900">${Number(book.sellingPrice || 0).toFixed(2)}</span>
+                  <span className="text-foreground">${Number(book.sellingPrice || 0).toFixed(2)}</span>
                   <button
                     onClick={() => handleAddToCart(book)}
-                    disabled={book.stockLevel === 0}
-                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${book.stockLevel > 0
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    disabled={book.stockLevel === 0 || (cart.find(item => item.book.ISBN === book.ISBN)?.quantity || 0) >= book.stockLevel}
+                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${book.stockLevel > 0 && (cart.find(item => item.book.ISBN === book.ISBN)?.quantity || 0) < book.stockLevel
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed'
                       }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    <span>Add to Cart</span>
+                    <span>{(cart.find(item => item.book.ISBN === book.ISBN)?.quantity || 0) >= book.stockLevel ? 'Max Added' : 'Add to Cart'}</span>
                   </button>
                 </div>
               </div>
@@ -166,9 +166,9 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
         {/* No Results */}
         {!isLoading && books.length === 0 && (
           <div className="text-center py-12">
-            <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-gray-900 mb-2">No books found</h3>
-            <p className="text-gray-600">Try adjusting your search or filters</p>
+            <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-foreground mb-2">No books found</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filters</p>
           </div>
         )}
       </div>
