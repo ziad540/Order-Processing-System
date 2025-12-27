@@ -28,6 +28,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
     threshold: '' as any,
     coverImage: ''
   });
+  const [error, setError] = useState<string | null>(null);
 
   const fetchBooks = async () => {
     setIsLoading(true);
@@ -112,7 +113,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
       (formData as any).threshold === '' ||
       (formData as any).publicationYear === ''
     ) {
-      alert('Please fill in all numeric fields (Price, Stock, Threshold, Year).');
+      setError('Please fill in all numeric fields (Price, Stock, Threshold, Year).');
       return;
     }
 
@@ -127,7 +128,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
       !Number.isFinite(threshold) ||
       !Number.isFinite(publicationYear)
     ) {
-      alert('Please enter valid numbers for Price, Stock, Threshold, and Year.');
+      setError('Please enter valid numbers for Price, Stock, Threshold, and Year.');
       return;
     }
 
@@ -172,9 +173,9 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
       await fetchBooks(); // Refresh list
       setShowAddForm(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add book:', error);
-      alert('Failed to add book. Please check if ISBN already exists.');
+      setError(error.message || 'Failed to add book. Please check if ISBN already exists.');
     }
   };
 
@@ -191,7 +192,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
     if (editingBook) {
       try {
         if ((formData as any).sellingPrice === '' || (formData as any).stockLevel === '') {
-          alert('Please enter valid numbers for Price and Stock.');
+          setError('Please enter valid numbers for Price and Stock.');
           return;
         }
 
@@ -199,7 +200,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
         const stockLevel = Number((formData as any).stockLevel);
 
         if (!Number.isFinite(sellingPrice) || !Number.isFinite(stockLevel)) {
-          alert('Please enter valid numbers for Price and Stock.');
+          setError('Please enter valid numbers for Price and Stock.');
           return;
         }
 
@@ -210,9 +211,9 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
         await fetchBooks(); // Refresh list
         setEditingBook(null);
         resetForm();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to update book:', error);
-        alert('Failed to update book.');
+        setError(error.message || 'Failed to update book.');
       }
     }
   };
@@ -231,6 +232,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
       threshold: '' as any,
       coverImage: ''
     });
+    setError(null);
   };
 
   return (
@@ -268,7 +270,8 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                       name="ISBN"
                       value={formData.ISBN}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                      className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all ${error && (error.includes('ISBN') || error.includes('add')) ? 'border-destructive ring-1 ring-destructive' : 'border-border'
+                        }`}
                       required
                     />
                   </div>
@@ -398,6 +401,15 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     </div>
                   </div>
                 </div>
+
+                {error && (
+                  <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-medium">{error}</span>
+                  </div>
+                )}
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
@@ -451,6 +463,15 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     step="1"
                   />
                 </div>
+
+                {error && (
+                  <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-medium">{error}</span>
+                  </div>
+                )}
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"

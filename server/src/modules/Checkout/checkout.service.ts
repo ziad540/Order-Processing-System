@@ -1,6 +1,20 @@
 import { DataStore } from '../../dataStore/index.js';
 import { Request, Response, NextFunction } from 'express';
 
+const isValidLuhn = (number: string) => {
+    let sum = 0;
+    let shouldDouble = false;
+    for (let i = number.length - 1; i >= 0; i--) {
+        let digit = parseInt(number.charAt(i));
+        if (shouldDouble) {
+            if ((digit *= 2) > 9) digit -= 9;
+        }
+        sum += digit;
+        shouldDouble = !shouldDouble;
+    }
+    return (sum % 10) === 0;
+};
+
 export const processPurchase = (db: DataStore) => {
     return async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -13,6 +27,13 @@ export const processPurchase = (db: DataStore) => {
 
             if (!cardNumber) {
                 return res.status(400).json({ error: 'Card number is required' });
+            }
+
+            // Remove any spaces just in case
+            const cleanCardNumber = cardNumber.replace(/\s/g, '');
+
+            if (!isValidLuhn(cleanCardNumber)) {
+                return res.status(400).json({ error: 'Invalid credit card number' });
             }
 
             // 1. Get current cart items

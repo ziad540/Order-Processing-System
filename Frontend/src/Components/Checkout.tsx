@@ -31,13 +31,47 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
 
   const totalPrice = cart.reduce((sum, item) => sum + (item.book.sellingPrice * item.quantity), 0);
 
+  const validateLuhn = (number: string) => {
+    let sum = 0;
+    let shouldDouble = false;
+    for (let i = number.length - 1; i >= 0; i--) {
+      let digit = parseInt(number.charAt(i));
+      if (shouldDouble) {
+        if ((digit *= 2) > 9) digit -= 9;
+      }
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    return (sum % 10) === 0;
+  };
+
+  const handleCardNumberChange = (value: string) => {
+    // Remove non-digits and limit to 16 digits
+    const digits = value.replace(/\D/g, '').substring(0, 16);
+    // Add spaces every 4 digits
+    const formatted = digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+    setCardNumber(formatted);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanCardNumber = cardNumber.replace(/\s/g, '');
+
+    if (cleanCardNumber.length < 13 || cleanCardNumber.length > 16) {
+      setError('Please enter a 13-16 digit credit card number');
+      return;
+    }
+
+    if (!validateLuhn(cleanCardNumber)) {
+      setError('The card number you entered is invalid. Please check for typos and try again.');
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
-      await checkoutService.processPurchase(cardNumber.replace(/\s/g, ''));
+      await checkoutService.processPurchase(cleanCardNumber);
       setOrderPlaced(true);
       setTimeout(() => {
         clearCart();
@@ -158,10 +192,13 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
                       id="cardNumber"
                       type="text"
                       value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
+                      onChange={(e) => handleCardNumberChange(e.target.value)}
                       placeholder="1234 5678 9012 3456"
                       maxLength={19}
-                      className="w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                      className={`w-full pl-10 pr-3 py-2 border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all ${error && (error.includes('card') || error.includes('digit'))
+                          ? 'border-destructive ring-1 ring-destructive'
+                          : 'border-border'
+                        }`}
                       required
                     />
                   </div>
@@ -212,9 +249,11 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
                 </div>
 
                 {error && (
-                  <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center space-x-2">
-                    <AlertCircle className="w-5 h-5" />
-                    <span>{error}</span>
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-medium">{error}</span>
                   </div>
                 )}
 

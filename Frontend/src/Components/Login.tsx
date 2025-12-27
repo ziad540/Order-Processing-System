@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Lock, Mail, Loader2 } from 'lucide-react'; // Changed User to Mail for email login
+import { BookOpen, Lock, Mail, Loader2, AlertCircle } from 'lucide-react'; // Changed User to Mail for email login
 import { User as UserType } from '../App';
 import * as authService from '../services/authService';
 
@@ -84,8 +84,11 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm text-center">
-              {error}
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex-shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <span className="text-sm font-medium">{error}</span>
             </div>
           )}
 
@@ -104,7 +107,8 @@ export default function Login({ onLogin }: LoginProps) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                  className={`w-full pl-10 pr-3 py-2 border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all ${error ? 'border-destructive ring-1 ring-destructive' : 'border-border'
+                    }`}
                   placeholder="Enter your email"
                   required
                 />
@@ -124,7 +128,8 @@ export default function Login({ onLogin }: LoginProps) {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                  className={`w-full pl-10 pr-3 py-2 border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-all ${error ? 'border-destructive ring-1 ring-destructive' : 'border-border'
+                    }`}
                   placeholder="Enter your password"
                   required
                 />

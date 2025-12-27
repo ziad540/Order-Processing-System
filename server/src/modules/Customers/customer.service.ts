@@ -16,12 +16,12 @@ export const SignUp = (db: DataStore) => async (req: Request, res: Response, nex
     try {
         const existingUser = await db.existsByUsername(Username);
         if (existingUser) {
-            return res.status(400).json({ error: "Username already exists" });
+            return res.status(400).json({ error: `The username '${Username}' is already taken. Please choose a different one.` });
         }
 
         const existingEmail = await db.existsByEmail(email);
         if (existingEmail) {
-            return res.status(400).json({ error: "Email already exists" });
+            return res.status(400).json({ error: `The email address '${email}' is already registered. Please sign in or use another email.` });
         }
 
 
@@ -66,7 +66,7 @@ export const signin = (db: DataStore) => async (req: Request, res: Response, nex
 
         const passwordMatch = await verifyPassword(Password, user.Password);
         const role = await db.getUserRole(user.UserID);
-        
+
         const jwt = signJwtToken({
             UserID: user.UserID,
             role: role
@@ -75,7 +75,7 @@ export const signin = (db: DataStore) => async (req: Request, res: Response, nex
             return res.status(400).json({ error: "Invalid email or password" });
         }
         res.status(200).json({
-            message: "Sign-in successful", 
+            message: "Sign-in successful",
             user: { ...user, role },
             token: jwt
 

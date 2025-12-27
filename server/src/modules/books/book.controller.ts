@@ -5,15 +5,14 @@ import { upload } from "../../middleware/uploadMiddleware.js";
 
 
 
-export const bookController = (db: DataStore)=>{
+export const bookController = (db: DataStore) => {
     const router = Router();
     router.post("/search", searchBooks(db));
     router.post("/create", upload.single('coverImage'), createBook(db));
     router.get("/list", listAllBooks(db));
     router.put("/update/:isbn", updateBookByISBN(db));
     router.get("/:isbn", getBookByISBN(db));
-    
-    
+
+
     return router;
 }
-    

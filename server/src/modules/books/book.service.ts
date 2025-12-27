@@ -18,11 +18,14 @@ export const createBook = (db: DataStore) => {
         threshold,
         PubID,
       }: Book = req.body;
-      
+
       // Removed PubID from strict validation as it can be resolved from publisher name
-      if (!ISBN || !title || !publicationYear || !sellingPrice || !category) {
+      const requiredFields: (keyof Book)[] = ['ISBN', 'title', 'publicationYear', 'sellingPrice', 'category'];
+      const missingFields = requiredFields.filter(field => !req.body[field]);
+
+      if (missingFields.length > 0) {
         return res.status(400).json({
-          error: "Please fill all required fields",
+          error: `Missing required information: ${missingFields.join(', ')}. Please fill in all fields.`,
         });
       }
       const coverImage = req.file ? `uploads/${req.file.filename}` : undefined;
@@ -35,7 +38,7 @@ export const createBook = (db: DataStore) => {
           parsedAuthors = JSON.parse(authors);
         } catch (e) {
           // If it's not JSON, treat it as a single author string wrapped in an array or just keep it
-           parsedAuthors = [authors];
+          parsedAuthors = [authors];
         }
       }
 
@@ -53,7 +56,7 @@ export const createBook = (db: DataStore) => {
         coverImage,
       };
 
-      await db.createNEWBook(newBook);    
+      await db.createNEWBook(newBook);
       console.log(`[BookService] Book created successfully: ${newBook.ISBN}`);
       res.status(200).json({ message: "Book created successfully", book: newBook });
     } catch (error) {
@@ -140,8 +143,8 @@ export const getBookByISBN = (db: DataStore) => {
 export const updateBookByISBN = (db: DataStore) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const {sellingPrice,stockLevel,threshold}= req.body;
-      if(sellingPrice<0 || stockLevel<0 || threshold<0){
+      const { sellingPrice, stockLevel, threshold } = req.body;
+      if (sellingPrice < 0 || stockLevel < 0 || threshold < 0) {
         return res.status(400).json({ message: "Invalid values for sellingPrice, stockLevel, or threshold" });
       }
       const { isbn: ISBN } = req.params;
@@ -151,7 +154,7 @@ export const updateBookByISBN = (db: DataStore) => {
         return res.status(400).json({ message: "ISBN parameter is required" });
       }
 
-      const result = await db.updateBookByISBN(ISBN,{sellingPrice,stockLevel,threshold});
+      const result = await db.updateBookByISBN(ISBN, { sellingPrice, stockLevel, threshold });
 
       if (!result) {
         console.warn(`[BookService] Failed to update. Book not found for ISBN: ${ISBN}`);
@@ -171,7 +174,7 @@ export const searchBooks = (db: DataStore) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { title, category, author }: { title?: string; category?: string[]; author?: string } = req.body;
-      
+
       const filter: BookFilter = {};
       if (title) filter.title = title;
       if (category && Array.isArray(category) && category.length > 0) filter.category = category;
@@ -202,8 +205,8 @@ export const searchBooks = (db: DataStore) => {
       const totalPages = Math.ceil(total / limitNumber);
       const currentPage = Number(page) || 1;
 
-      res.status(200).json({ 
-        message: "Book(s) retrieved successfully", 
+      res.status(200).json({
+        message: "Book(s) retrieved successfully",
         data: books,
         pagination: {
           currentPage,
