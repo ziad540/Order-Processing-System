@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { CheckCircle, Clock, Package } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle, Clock, Package, RefreshCw } from 'lucide-react';
 import AdminNavbar from './AdminNavbar';
 import { User } from '../App';
-import { mockPublisherOrders as initialOrders } from '../data/mockData';
+import { publisherOrderService } from '../services/publisherOrderService';
+import { ReplenishmentOrder } from '../../../shared/types';
 
 interface AdminPublisherOrdersProps {
   user: User;
@@ -10,25 +11,54 @@ interface AdminPublisherOrdersProps {
 }
 
 export default function PublisherOrders({ user, onLogout }: AdminPublisherOrdersProps) {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState<ReplenishmentOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleConfirmOrder = (orderId: string) => {
-    setOrders(orders.map(order =>
-      order.id === orderId ? { ...order, status: 'Confirmed' as const } : order
-    ));
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    setIsLoading(true);
+    try {
+      const data = await publisherOrderService.getAllOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const pendingOrders = orders.filter(order => order.status === 'Pending');
-  const confirmedOrders = orders.filter(order => order.status === 'Confirmed');
+  const handleConfirmOrder = async (orderId: number) => {
+    try {
+      await publisherOrderService.updateOrderStatus(orderId, 'Confirmed');
+      fetchOrders();
+    } catch (error) {
+      console.error('Failed to confirm order:', error);
+    }
+  };
+
+  const pendingOrders = orders.filter(order => order.OrderStatus === 'Pending');
+  const confirmedOrders = orders.filter(order => order.OrderStatus === 'Confirmed');
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <AdminNavbar user={user} onLogout={onLogout} />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-foreground mb-2">Publisher Orders</h1>
-          <p className="text-muted-foreground">Manage orders placed to book publishers</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-foreground mb-2">Publisher Orders</h1>
+            <p className="text-muted-foreground">Manage orders placed to book publishers</p>
+          </div>
+          <button
+            onClick={fetchOrders}
+            className="flex items-center space-x-2 bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/80 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
         </div>
 
         {/* Stats */}
@@ -85,14 +115,14 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
                   </thead>
                   <tbody>
                     {pendingOrders.map(order => (
-                      <tr key={order.id} className="border-b border-border hover:bg-muted">
-                        <td className="px-6 py-4 text-foreground">{order.id}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{order.publisherName}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{order.isbn}</td>
-                        <td className="px-6 py-4 text-foreground">{order.bookTitle}</td>
-                        <td className="px-6 py-4 text-center text-foreground">{order.quantity}</td>
+                      <tr key={order.OrderID} className="border-b border-border hover:bg-muted">
+                        <td className="px-6 py-4 text-foreground">{order.OrderID}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{order.PublisherName}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{order.ISBN}</td>
+                        <td className="px-6 py-4 text-foreground">{order.BookTitle}</td>
+                        <td className="px-6 py-4 text-center text-foreground">{order.QuantityRequested}</td>
                         <td className="px-6 py-4 text-muted-foreground">
-                          {new Date(order.orderDate).toLocaleDateString('en-US', {
+                          {new Date(order.OrderDate).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'
@@ -106,7 +136,7 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
                         </td>
                         <td className="px-6 py-4 text-center">
                           <button
-                            onClick={() => handleConfirmOrder(order.id)}
+                            onClick={() => handleConfirmOrder(order.OrderID)}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 transition-colors"
                           >
                             Confirm Order
@@ -141,14 +171,14 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
                   </thead>
                   <tbody>
                     {confirmedOrders.map(order => (
-                      <tr key={order.id} className="border-b border-border hover:bg-muted">
-                        <td className="px-6 py-4 text-foreground">{order.id}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{order.publisherName}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{order.isbn}</td>
-                        <td className="px-6 py-4 text-foreground">{order.bookTitle}</td>
-                        <td className="px-6 py-4 text-center text-foreground">{order.quantity}</td>
+                      <tr key={order.OrderID} className="border-b border-border hover:bg-muted">
+                        <td className="px-6 py-4 text-foreground">{order.OrderID}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{order.PublisherName}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{order.ISBN}</td>
+                        <td className="px-6 py-4 text-foreground">{order.BookTitle}</td>
+                        <td className="px-6 py-4 text-center text-foreground">{order.QuantityRequested}</td>
                         <td className="px-6 py-4 text-muted-foreground">
-                          {new Date(order.orderDate).toLocaleDateString('en-US', {
+                          {new Date(order.OrderDate).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'

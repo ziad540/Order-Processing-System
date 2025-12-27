@@ -9,7 +9,8 @@ import { CartItemDao } from './DAO/cartItemDao.js';
 import { BlackListedTokensDao } from './DAO/blackListedTokensDao.js';
 import { ReportsDao } from './DAO/reportsDao.js';
 import { CheckoutDao } from './DAO/checkoutDao.js';
-export interface DataStore extends bookDao, CustomerDao, UserDao, adminDao, ShoppingCartDao, CartItemDao, BlackListedTokensDao, ReportsDao, CheckoutDao { }
+import { ReplenishmentOrderDao } from './DAO/replenishmentOrderDao.js';
+export interface DataStore extends bookDao, CustomerDao, UserDao, adminDao, ShoppingCartDao, CartItemDao, BlackListedTokensDao, ReportsDao, CheckoutDao, ReplenishmentOrderDao { }
 
 
 

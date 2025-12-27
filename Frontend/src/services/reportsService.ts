@@ -21,6 +21,7 @@ export interface DashboardStats {
     TotalCopiesSold: number;
     CurrentStock: number;
   }[];
+  replenishmentOrderCount: number;
 }
 
 export const reportsService = {
@@ -37,5 +38,10 @@ export const reportsService = {
   getOrderHistory: async (userId: number): Promise<any[]> => {
     const response = await axios.get(`${API_URL}/order-history/${userId}`);
     return response.data;
+  },
+
+  getReplenishmentCountByISBN: async (isbn: string): Promise<number> => {
+    const response = await axios.get(`${API_URL}/replenishment-count/${isbn}`);
+    return response.data.count;
   }
 };

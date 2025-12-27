@@ -6,7 +6,8 @@ import {
   User,
   Customer,
   Admin,
-  BookFilter
+  BookFilter,
+  ReplenishmentOrder
 } from "../../../shared/types.js";
 import { DataStore, pool } from "./index.js";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
@@ -852,6 +853,79 @@ export class Mysql implements DataStore {
       [userId]
     );
     return rows;
+  }
+
+  async getReplenishmentOrderCount(): Promise<number> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM ReplenishmentOrders'
+    );
+    return Number(rows[0].count || 0);
+  }
+
+  async getReplenishmentOrderCountByISBN(isbn: string): Promise<number> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM ReplenishmentOrders WHERE ISBN = ?',
+      [isbn]
+    );
+    return Number(rows[0].count || 0);
+  }
+
+  async getAllReplenishmentOrders(): Promise<ReplenishmentOrder[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT RO.*, P.Name as PublisherName, B.Title as BookTitle 
+       FROM ReplenishmentOrders RO
+       JOIN Publishers P ON RO.PubID = P.PubID
+       JOIN Books B ON RO.ISBN = B.ISBN
+       ORDER BY RO.OrderDate DESC`
+    );
+    return rows as ReplenishmentOrder[];
+  }
+
+  async updateReplenishmentOrderStatus(orderId: number, status: string, adminId?: number): Promise<void> {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // Get current order details to check status and get ISBN/Quantity
+      const [rows] = await connection.query<RowDataPacket[]>(
+        'SELECT OrderStatus, ISBN, QuantityRequested FROM ReplenishmentOrders WHERE OrderID = ?',
+        [orderId]
+      );
+
+      if (rows.length === 0) {
+        throw new Error('Replenishment order not found');
+      }
+
+      const currentOrder = rows[0];
+
+      // Update the order status and AdminID
+      if (adminId) {
+        await connection.execute(
+          'UPDATE ReplenishmentOrders SET OrderStatus = ?, AdminID = ? WHERE OrderID = ?',
+          [status, adminId, orderId]
+        );
+      } else {
+        await connection.execute(
+          'UPDATE ReplenishmentOrders SET OrderStatus = ? WHERE OrderID = ?',
+          [status, orderId]
+        );
+      }
+
+      // If status is transitioning to Confirmed, increase the stock level
+      if (status === 'Confirmed' && currentOrder.OrderStatus !== 'Confirmed') {
+        await connection.execute(
+          'UPDATE Books SET StockLevel = StockLevel + ? WHERE ISBN = ?',
+          [currentOrder.QuantityRequested, currentOrder.ISBN]
+        );
+      }
+
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 
   // --- CheckoutDao implementation ---

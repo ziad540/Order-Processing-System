@@ -7,11 +7,13 @@ export const getDashboardStats = (db: DataStore) => {
       const salesLastMonth = await db.getSalesLastMonth();
       const topCustomers = await db.getTop5Customers();
       const topBooks = await db.getTop10Books();
+      const replenishmentOrderCount = await db.getReplenishmentOrderCount();
 
       res.status(200).json({
         salesLastMonth,
         topCustomers,
-        topBooks
+        topBooks,
+        replenishmentOrderCount
       });
     } catch (error) {
       next(error);
@@ -63,8 +65,22 @@ export const getOrderHistory = (db: DataStore) => {
           price: Number(row.PricePerUnit)
         });
       });
-
       res.status(200).json(Array.from(ordersMap.values()));
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+export const getReplenishmentCountByISBN = (db: DataStore) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { isbn } = req.params;
+      if (!isbn) {
+        return res.status(400).json({ error: 'ISBN is required' });
+      }
+      const count = await db.getReplenishmentOrderCountByISBN(isbn);
+      res.status(200).json({ count });
     } catch (error) {
       next(error);
     }

@@ -4,4 +4,6 @@ export interface ReportsDao {
     getTop10Books(): Promise<any[]>;
     getSalesByDate(date: string): Promise<{ totalRevenue: number; totalTransactions: number }>;
     getOrderHistory(userId: number): Promise<any[]>;
+    getReplenishmentOrderCount(): Promise<number>;
+    getReplenishmentOrderCountByISBN(isbn: string): Promise<number>;
 }

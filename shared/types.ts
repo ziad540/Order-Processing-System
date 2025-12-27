@@ -65,5 +65,19 @@ export interface BlackListedToken {
 }
 
 
+export interface ReplenishmentOrder {
+  OrderID: number;
+  OrderDate: string;
+  OrderStatus: string;
+  QuantityRequested: number;
+  AdminID: number;
+  PubID: number;
+  ISBN: string;
+  // Joins
+  PublisherName?: string;
+  BookTitle?: string;
+}
+
+
 
 

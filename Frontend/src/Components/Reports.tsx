@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, TrendingUp, Users, BookOpen, Search } from 'lucide-react';
+import { Calendar, TrendingUp, Users, BookOpen, Search, Package } from 'lucide-react';
 import AdminNavbar from './AdminNavbar';
 import { User } from '../App';
 import { reportsService, DashboardStats } from '../services/reportsService';
@@ -57,7 +57,25 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
     revenue: 0 // Revenue not in view, would need calculation or view update
   })) || [];
 
-  const publisherOrderCount = searchIsbn ? 12 : 0; // Placeholder logic remains for now
+  const [replenishmentCountByIsbn, setReplenishmentCountByIsbn] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (searchIsbn) {
+      const fetchCount = async () => {
+        try {
+          const count = await reportsService.getReplenishmentCountByISBN(searchIsbn);
+          setReplenishmentCountByIsbn(count);
+        } catch (error) {
+          console.error('Failed to fetch replenishment count:', error);
+        }
+      };
+      fetchCount();
+    } else {
+      setReplenishmentCountByIsbn(null);
+    }
+  }, [searchIsbn]);
+
+  const publisherOrderCount = replenishmentCountByIsbn !== null ? replenishmentCountByIsbn : 0;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -101,6 +119,18 @@ export default function Reports({ user, onLogout }: AdminReportsProps) {
             </div>
             <p className="text-foreground">Revenue: ${salesOnSelectedDate.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             <p className="text-foreground">Transactions: {salesOnSelectedDate.totalTransactions}</p>
+          </div>
+
+          {/* Total Replenishment Orders */}
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 md:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-muted rounded-lg">
+                <Package className="w-6 h-6 text-blue-600 dark:text-foreground" />
+              </div>
+            </div>
+            <h2 className="text-foreground mb-2">Total Replenishment Orders</h2>
+            <p className="text-muted-foreground mb-4">Lifetime</p>
+            <p className="text-foreground font-semibold text-2xl">{stats?.replenishmentOrderCount || 0}</p>
           </div>
         </div>
 

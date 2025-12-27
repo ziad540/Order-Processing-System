@@ -8,6 +8,7 @@ import { adminController } from "./modules/Admins/admin.controller.js";
 import { shoppingCartController } from "./modules/ShoppingCart/shoppingcart.controller.js";
 import { reportsController } from "./modules/reports/reports.controller.js";
 import { checkoutController } from "./modules/Checkout/checkout.controller.js";
+import { replenishmentController } from "./modules/Replenishment/replenishment.controller.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import cors from 'cors';
 
@@ -30,6 +31,7 @@ import cors from 'cors';
   app.use('/cart', shoppingCartController(db));
   app.use('/reports', reportsController(db));
   app.use('/checkout', checkoutController(db));
+  app.use('/replenishment', replenishmentController(db));
 
   //  http://localhost:3000/books/create
   // error handling middleware

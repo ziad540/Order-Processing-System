@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS ReplenishmentOrders
     OrderDate         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     OrderStatus       VARCHAR(50) NOT NULL,
     QuantityRequested INT         NOT NULL,
-    AdminID           INT         NOT NULL,
+    AdminID           INT,
     PubID             INT         NOT NULL,
     ISBN              VARCHAR(20) NOT NULL,
     CONSTRAINT fk_order_admin FOREIGN KEY (AdminID) REFERENCES Admins (UserID),
@@ -192,7 +192,7 @@ BEGIN
     -- Check if stock fell below threshold and an order doesn't already exist
     IF NEW.StockLevel <= NEW.threshold AND OLD.StockLevel > NEW.threshold THEN
         INSERT INTO ReplenishmentOrders (OrderStatus, QuantityRequested, AdminID, PubID, ISBN)
-        VALUES ('Pending', 30, 1, NEW.PubID, NEW.ISBN);
+        VALUES ('Pending', 30, NULL, NEW.PubID, NEW.ISBN);
     END IF;
 END //
 
