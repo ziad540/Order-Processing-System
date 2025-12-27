@@ -113,7 +113,14 @@ function App() {
     setUser(loggedInUser);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (user) {
+      try {
+        await cartService.clearCart();
+      } catch (error) {
+        console.error("Failed to clear cart on logout:", error);
+      }
+    }
     authService.logout();
     setUser(null);
     setCart([]);

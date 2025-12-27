@@ -117,32 +117,21 @@ export class Mysql implements DataStore {
     if (!cartId) return [];
 
     const [rows] = await pool.query<RowDataPacket[]>(`
-      SELECT ci.Quantity, b.ISBN, b.Title as title, b.SellingPrice as sellingPrice, b.Category as category,
-             p.Name as PublisherName,
-             GROUP_CONCAT(a.AuthorName SEPARATOR ', ') as authors
+      SELECT ci.Quantity as quantity, b.ISBN, b.Title as title, b.SellingPrice as sellingPrice, b.Category as category,
+             b.StockLevel as stockLevel, b.threshold, b.Pub_Year as publicationYear, b.coverImage,
+             p.Name as publisher,
+             GROUP_CONCAT(DISTINCT a.AuthorName SEPARATOR ', ') as authors
       FROM CartItems ci
       JOIN Books b ON ci.ISBN = b.ISBN
       LEFT JOIN Authors a ON b.ISBN = a.BookISBN
       LEFT JOIN Publishers p ON b.PubID = p.PubID
       WHERE ci.CartID = ?
-      GROUP BY ci.Quantity, b.ISBN, b.Title, b.SellingPrice, b.Category, p.Name
+      GROUP BY ci.Quantity, b.ISBN, b.Title, b.SellingPrice, b.Category, b.StockLevel, b.threshold, b.Pub_Year, b.coverImage, p.Name
     `, [cartId]);
 
     console.log(`[Mysql] getallCartItems. Retrieved ${rows.length} rows.`);
-    if (rows.length > 0) {
-      console.log(`[Mysql] First row sample:`, rows[0]);
-    }
 
-    return rows.map(row => ({
-      quantity: row.Quantity,
-      book: {
-        ISBN: row.ISBN,
-        title: row.title,
-        sellingPrice: row.sellingPrice,
-        category: row.category,
-        authors: row.authors ? row.authors.split(', ') : []
-      }
-    }));
+    return rows.map(row => this.mapRowToBookInCart(row));
   }
   async getCartItemQuantity(cartId: number, isbn: string): Promise<number | null> {
 
@@ -209,16 +198,7 @@ export class Mysql implements DataStore {
       [cartId]
     );
 
-    const items: CartItem[] = itemRows.map((row: any) => ({
-      quantity: row.Quantity,
-      book: {
-        ISBN: row.ISBN,
-        title: row.Title,
-        authors: row.Authors ? (typeof row.Authors === 'string' ? row.Authors.split(',').map((a: string) => a.trim()) : row.Authors) : [],
-        sellingPrice: row.SellingPrice,
-        category: row.Category
-      }
-    }));
+    const items: CartItem[] = itemRows.map((row: any) => this.mapRowToBookInCart(row));
 
     return {
       cartId,
@@ -262,7 +242,7 @@ export class Mysql implements DataStore {
 
   async addItemToCart(userId: number, isbn: string, quantity: number): Promise<void> {
 
-    const shoppingCartId = this.getCartIdByUserId(userId);
+    const shoppingCartId = await this.getCartIdByUserId(userId);
     if (!shoppingCartId) {
 
       throw new Error("Shopping cart not found for user");
@@ -278,7 +258,7 @@ export class Mysql implements DataStore {
   }
   async removeItemFromCart(userId: number, isbn: string): Promise<void> {
 
-    const shoppingCartId = this.getCartIdByUserId(userId);
+    const shoppingCartId = await this.getCartIdByUserId(userId);
     if (!shoppingCartId) {
       throw new Error("Shopping cart not found for user");
     }
@@ -289,21 +269,17 @@ export class Mysql implements DataStore {
     return;
 
   }
-  async updateItemQuantity(userId: number, isbn: string, quantity: number): Promise<void> {
-    const shoppingCartId = this.getCartIdByUserId(userId);
-    if (!shoppingCartId) {
-      throw new Error("Shopping cart not found for user");
-    }
+  async updateItemQuantity(cartId: number, isbn: string, quantity: number): Promise<void> {
     const result = await pool.execute<ResultSetHeader>(
       'UPDATE CartItems SET Quantity = ? WHERE CartID = ? AND ISBN = ?',
-      [quantity, shoppingCartId, isbn]
+      [quantity, cartId, isbn]
     );
     return;
 
   }
   async clearCart(userId: number): Promise<void> {
 
-    const shoppingCartId = this.getCartIdByUserId(userId);
+    const shoppingCartId = await this.getCartIdByUserId(userId);
     if (!shoppingCartId) {
       throw new Error("Shopping cart not found for user");
     }
@@ -325,15 +301,13 @@ export class Mysql implements DataStore {
     );
     if (rows.length === 0) return null;
     const row = rows[0];
+    return this.mapRowToBookInCart(row);
+  }
+
+  private mapRowToBookInCart(row: any): CartItem {
     return {
-      quantity: row.Quantity,
-      book: {
-        ISBN: row.ISBN,
-        title: row.Title,
-        authors: row.Authors ? (typeof row.Authors === 'string' ? row.Authors.split(',').map((a: string) => a.trim()) : row.Authors) : [],
-        sellingPrice: row.SellingPrice,
-        category: row.Category
-      }
+      quantity: Number(row.Quantity ?? row.quantity ?? 0),
+      book: this.mapRowToBook(row)
     };
   }
   async createCartItem(cartId: number, isbn: string, quantity: number): Promise<{
@@ -467,9 +441,9 @@ export class Mysql implements DataStore {
 
     const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE UserID = ?', [id]);
     if (rows.length === 0) return null;
-
-
-    return rows[0] as User;
+    const user = rows[0] as User;
+    user.phones = await this.getUserPhones(id);
+    return user;
 
 
 
@@ -478,7 +452,9 @@ export class Mysql implements DataStore {
   async getByUsername(username: string): Promise<User | null> {
     const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE username = ?', [username]);
     if (rows.length === 0) return null;
-    return rows[0] as User;
+    const user = rows[0] as User;
+    user.phones = await this.getUserPhones(user.UserID || (user as any).UserID);
+    return user;
 
 
   }
@@ -486,7 +462,9 @@ export class Mysql implements DataStore {
 
     const [rows] = await pool.execute<RowDataPacket[]>('SELECT * FROM users WHERE email = ?', [email]);
     if (rows.length === 0) return null;
-    return rows[0] as User;
+    const user = rows[0] as User;
+    user.phones = await this.getUserPhones(user.UserID || (user as any).UserID);
+    return user;
 
 
   }
@@ -611,8 +589,8 @@ export class Mysql implements DataStore {
       publisher: row.publisher || row.Publisher || 'Unknown Publisher',
       publicationYear: row.publicationYear || row.Pub_Year || row.Year || new Date().getFullYear(),
       category: row.category || row.Category || 'General',
-      sellingPrice: Number(row.SellingPrice ?? row.Price ?? 0),
-      stockLevel: Number(row.StockLevel ?? row.quantity ?? row.Quantity ?? row.Stock ?? 0),
+      sellingPrice: Number(row.sellingPrice ?? row.SellingPrice ?? row.Price ?? 0),
+      stockLevel: Number(row.stockLevel ?? row.StockLevel ?? row.quantity ?? row.Quantity ?? row.Stock ?? 0),
       threshold: Number(row.threshold ?? row.Threshold ?? 10),
       coverImage: row.coverImage || row.CoverImage || 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop'
     };
@@ -632,7 +610,7 @@ export class Mysql implements DataStore {
     if (filter.title) {
       query += " AND (books.title LIKE ? OR Publishers.Name LIKE ? OR EXISTS (SELECT 1 FROM Authors A2 WHERE A2.BookISBN = books.ISBN AND A2.AuthorName LIKE ?))";
       countQuery += " AND (books.title LIKE ? OR Publishers.Name LIKE ? OR EXISTS (SELECT 1 FROM Authors A2 WHERE A2.BookISBN = books.ISBN AND A2.AuthorName LIKE ?))";
-      params.push(`% ${filter.title} % `, ` % ${filter.title} % `, ` % ${filter.title} % `);
+      params.push(`%${filter.title}%`, `%${filter.title}%`, `%${filter.title}%`);
     }
 
     if (filter.category && filter.category.length > 0) {
@@ -645,7 +623,7 @@ export class Mysql implements DataStore {
     if (filter.author) {
       query += " AND Authors.AuthorName LIKE ?";
       countQuery += " AND Authors.AuthorName LIKE ?";
-      params.push(`% ${filter.author} % `);
+      params.push(`%${filter.author}%`);
     }
 
     query += " GROUP BY books.ISBN";
@@ -866,5 +844,40 @@ export class Mysql implements DataStore {
       [userId]
     );
     return rows;
+  }
+
+  // --- CheckoutDao implementation ---
+
+  async ensureCreditCardExists(userId: number, cardNum: string): Promise<void> {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      'SELECT 1 FROM CreditCards WHERE CardNum = ?',
+      [cardNum]
+    );
+
+    if (rows.length === 0) {
+      // Create a dummy expiry date (far in future) for simulation
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 5);
+
+      await pool.execute(
+        'INSERT INTO CreditCards (CardNum, ExpiryDate, UserID) VALUES (?, ?, ?)',
+        [cardNum, expiryDate, userId]
+      );
+    }
+  }
+
+  async createSalesTransaction(userId: number, cardNum: string, totalAmount: number): Promise<number> {
+    const [result] = await pool.execute<ResultSetHeader>(
+      'INSERT INTO SalesTransactions (UserID, CardNum, TotalAmount) VALUES (?, ?, ?)',
+      [userId, cardNum, totalAmount]
+    );
+    return result.insertId;
+  }
+
+  async createTransactionItem(transactionId: number, isbn: string, quantity: number, pricePerUnit: number): Promise<void> {
+    await pool.execute(
+      'INSERT INTO TransactionItems (TransactionID, ISBN, Quantity, SellingPriceAtTime) VALUES (?, ?, ?, ?)',
+      [transactionId, isbn, quantity, pricePerUnit]
+    );
   }
 }

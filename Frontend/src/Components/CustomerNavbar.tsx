@@ -6,7 +6,7 @@ import ThemeToggle from './ThemeToggle';
 
 interface CustomerNavbarProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   cart?: CartItem[];
 }
 
@@ -32,11 +32,10 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
           <div className="flex items-center space-x-8">
             <Link
               to="/customer/home"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/customer/home')
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActive('/customer/home')
                   ? 'text-indigo-600 bg-indigo-50 dark:text-foreground dark:bg-muted'
                   : 'text-muted-foreground hover:text-indigo-600 hover:bg-muted dark:hover:text-primary'
-              }`}
+                }`}
             >
               <BookOpen className="w-5 h-5" />
               <span>Browse Books</span>
@@ -44,11 +43,10 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
 
             <Link
               to="/customer/cart"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors relative ${
-                isActive('/customer/cart')
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors relative ${isActive('/customer/cart')
                   ? 'text-indigo-600 bg-indigo-50 dark:text-foreground dark:bg-muted'
                   : 'text-muted-foreground hover:text-indigo-600 hover:bg-muted dark:hover:text-primary'
-              }`}
+                }`}
             >
               <ShoppingCart className="w-5 h-5" />
               <span>Cart</span>
@@ -61,11 +59,10 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
 
             <Link
               to="/customer/orders"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/customer/orders')
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActive('/customer/orders')
                   ? 'text-indigo-600 bg-indigo-50 dark:text-foreground dark:bg-muted'
                   : 'text-muted-foreground hover:text-indigo-600 hover:bg-muted dark:hover:text-primary'
-              }`}
+                }`}
             >
               <Package className="w-5 h-5" />
               <span>My Orders</span>
@@ -73,11 +70,10 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
 
             <Link
               to="/customer/profile"
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/customer/profile')
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${isActive('/customer/profile')
                   ? 'text-indigo-600 bg-indigo-50 dark:text-foreground dark:bg-muted'
                   : 'text-muted-foreground hover:text-indigo-600 hover:bg-muted dark:hover:text-primary'
-              }`}
+                }`}
             >
               <UserIcon className="w-5 h-5" />
               <span>Profile</span>
@@ -85,7 +81,7 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
           </div>
 
           {/* User Info & Theme & Logout */}
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4">
             <ThemeToggle />
             <div className="flex flex-col items-end leading-tight">
               <span className="text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</span>

@@ -1,25 +1,25 @@
 export interface Book {
-    ISBN: string;
-    title: string;
-    authors?: string[];
-    publisher?: string;
-    publicationYear: number;
-    sellingPrice: number;
-    category: string;
-    stockLevel: number;
-    threshold?: number;
-    PubID?: number;
-    coverImage?: string;
+  ISBN: string;
+  title: string;
+  authors?: string[];
+  publisher?: string;
+  publicationYear: number;
+  sellingPrice: number;
+  category: string;
+  stockLevel: number;
+  threshold?: number;
+  PubID?: number;
+  coverImage?: string;
 }
 
 export interface BookFilter {
-    title?: string;
-    category?: string[];
-    author?: string;
+  title?: string;
+  category?: string[];
+  author?: string;
 }
 
 
-export  interface User {
+export interface User {
   UserID: number;
   Username: string;
   email: string;
@@ -28,31 +28,23 @@ export  interface User {
 }
 
 
-export interface Customer extends User 
-{
+export interface Customer extends User {
   ShippingAddress: string;
   FirstName: string;
   LastName: string;
-    
+
 }
 
-export interface Admin extends User
-{
+export interface Admin extends User {
 
 
-  
+
 }
 
 
 export interface CartItem {
   quantity: number;
-  book: {
-    ISBN: string;
-    title: string;
-    authors?: string[];
-    sellingPrice: number;
-    category: string;
-  };
+  book: Book;
 }
 
 export interface ShoppingCart {

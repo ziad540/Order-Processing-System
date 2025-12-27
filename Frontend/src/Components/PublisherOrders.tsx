@@ -6,7 +6,7 @@ import { mockPublisherOrders as initialOrders } from '../data/mockData';
 
 interface AdminPublisherOrdersProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 export default function PublisherOrders({ user, onLogout }: AdminPublisherOrdersProps) {
@@ -24,7 +24,7 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
   return (
     <div className="min-h-screen bg-background text-foreground">
       <AdminNavbar user={user} onLogout={onLogout} />
-      
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-foreground mb-2">Publisher Orders</h1>
@@ -33,7 +33,7 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-muted rounded-lg">
                 <Package className="w-6 h-6 text-blue-600 dark:text-foreground" />
@@ -43,7 +43,7 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
             <p className="text-foreground">{orders.length}</p>
           </div>
 
-            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center justify-center w-12 h-12 bg-amber-100 dark:bg-muted rounded-lg">
                 <Clock className="w-6 h-6 text-amber-600 dark:text-foreground" />
@@ -53,7 +53,7 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
             <p className="text-foreground">{pendingOrders.length}</p>
           </div>
 
-            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-muted rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-600 dark:text-foreground" />
@@ -68,7 +68,7 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
         {pendingOrders.length > 0 && (
           <div className="mb-8">
             <h2 className="text-foreground mb-4">Pending Orders</h2>
-              <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border overflow-hidden">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-amber-50 border-b border-amber-200 dark:bg-muted dark:border-border">
@@ -125,7 +125,7 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
         {confirmedOrders.length > 0 && (
           <div>
             <h2 className="text-foreground mb-4">Confirmed Orders</h2>
-              <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border overflow-hidden">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-green-50 border-b border-green-200 dark:bg-muted dark:border-border">
@@ -171,7 +171,7 @@ export default function PublisherOrders({ user, onLogout }: AdminPublisherOrders
 
         {/* Empty State */}
         {orders.length === 0 && (
-            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
+          <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
             <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-foreground mb-2">No Publisher Orders</h2>
             <p className="text-muted-foreground">Publisher orders will appear here</p>

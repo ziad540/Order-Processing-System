@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Calendar, Lock, CheckCircle } from 'lucide-react';
+import { CreditCard, Calendar, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import CustomerNavbar from './CustomerNavbar';
 import { User, CartItem } from '../App';
+import * as checkoutService from '../services/checkoutService';
 
 interface CheckoutProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   cart: CartItem[];
   clearCart: () => void;
 }
@@ -17,17 +18,36 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
   const [expiryDate, setExpiryDate] = useState('');
   const [cvv, setCvv] = useState('');
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [shippingInfo, setShippingInfo] = useState({
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    address: user.address || ''
+  });
 
   const totalPrice = cart.reduce((sum, item) => sum + (item.book.sellingPrice * item.quantity), 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate order placement
-    setOrderPlaced(true);
-    setTimeout(() => {
-      clearCart();
-      navigate('/customer/orders');
-    }, 2000);
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      await checkoutService.processPurchase(cardNumber.replace(/\s/g, ''));
+      setOrderPlaced(true);
+      setTimeout(() => {
+        clearCart();
+        navigate('/customer/orders');
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during checkout');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (cart.length === 0 && !orderPlaced) {
@@ -37,7 +57,7 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
 
   if (orderPlaced) {
     return (
-         <div className="min-h-screen bg-background text-foreground">
+      <div className="min-h-screen bg-background text-foreground">
         <CustomerNavbar user={user} onLogout={onLogout} cart={[]} />
         <div className="max-w-2xl mx-auto px-6 py-16">
           <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
@@ -56,7 +76,7 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
   }
 
   return (
-     <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
 
       <div className="max-w-5xl mx-auto px-6 py-8">
@@ -68,7 +88,7 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Payment Form */}
           <div className="lg:col-span-2">
-             <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 mb-6">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 mb-6">
               <h2 className="text-foreground mb-6">Shipping Information</h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -76,18 +96,18 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
                     <label className="block text-muted-foreground mb-2">First Name</label>
                     <input
                       type="text"
-                      value={user.firstName}
-                      disabled
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-muted"
+                      value={shippingInfo.firstName}
+                      onChange={(e) => setShippingInfo({ ...shippingInfo, firstName: e.target.value })}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                   <div>
                     <label className="block text-muted-foreground mb-2">Last Name</label>
                     <input
                       type="text"
-                      value={user.lastName}
-                      disabled
-                      className="w-full px-3 py-2 border border-border rounded-lg bg-muted"
+                      value={shippingInfo.lastName}
+                      onChange={(e) => setShippingInfo({ ...shippingInfo, lastName: e.target.value })}
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                 </div>
@@ -95,33 +115,35 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
                   <label className="block text-muted-foreground mb-2">Email</label>
                   <input
                     type="email"
-                    value={user.email}
-                    disabled
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-muted"
+                    value={shippingInfo.email}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
                 <div>
                   <label className="block text-muted-foreground mb-2">Phone</label>
                   <input
                     type="tel"
-                    value={user.phone}
-                    disabled
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-muted"
+                    value={shippingInfo.phone}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    placeholder="Enter your phone number"
                   />
                 </div>
                 <div>
                   <label className="block text-muted-foreground mb-2">Shipping Address</label>
                   <textarea
-                    value={user.address}
-                    disabled
+                    value={shippingInfo.address}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, address: e.target.value })}
                     rows={2}
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-muted resize-none"
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                    placeholder="Enter your shipping address"
                   />
                 </div>
               </div>
             </div>
 
-             <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6">
               <h2 className="text-foreground mb-6">Payment Information</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -189,12 +211,21 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
                   </div>
                 </div>
 
+                {error && (
+                  <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center space-x-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
                 <div className="pt-6">
                   <button
                     type="submit"
-                    className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 transition-colors"
+                    disabled={isProcessing}
+                    className={`w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 transition-colors ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                   >
-                    Confirm Purchase
+                    {isProcessing ? 'Processing...' : 'Confirm Purchase'}
                   </button>
                 </div>
               </form>
@@ -203,7 +234,7 @@ export default function Checkout({ user, onLogout, cart, clearCart }: CheckoutPr
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-             <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 sticky top-6">
+            <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 sticky top-6">
               <h2 className="text-foreground mb-6">Order Summary</h2>
 
               <div className="space-y-4 mb-6">

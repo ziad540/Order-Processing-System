@@ -6,7 +6,7 @@ import { reportsService } from '../services/reportsService';
 
 interface OrderHistoryProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 export default function OrderHistory({ user, onLogout }: OrderHistoryProps) {
@@ -29,12 +29,33 @@ export default function OrderHistory({ user, onLogout }: OrderHistoryProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <CustomerNavbar user={user} onLogout={onLogout} />
-      
+
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-foreground mb-2">Order History</h1>
           <p className="text-muted-foreground">View your past orders</p>
         </div>
+
+        {orders.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-card text-card-foreground border border-border p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-muted-foreground text-sm mb-1 uppercase tracking-wider font-semibold">Total Orders</p>
+              <h2 className="text-3xl font-bold text-foreground">{orders.length}</h2>
+            </div>
+            <div className="bg-card text-card-foreground border border-border p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-muted-foreground text-sm mb-1 uppercase tracking-wider font-semibold">Total Spent</p>
+              <h2 className="text-3xl font-bold text-indigo-600 dark:text-primary">
+                ${orders.reduce((sum, order) => sum + Number(order.totalPrice || 0), 0).toFixed(2)}
+              </h2>
+            </div>
+            <div className="bg-card text-card-foreground border border-border p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <p className="text-muted-foreground text-sm mb-1 uppercase tracking-wider font-semibold">Avg. Order Value</p>
+              <h2 className="text-3xl font-bold text-foreground">
+                ${(orders.reduce((sum, order) => sum + Number(order.totalPrice || 0), 0) / orders.length).toFixed(2)}
+              </h2>
+            </div>
+          </div>
+        )}
 
         {orders.length === 0 ? (
           <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-12 text-center">
@@ -60,15 +81,14 @@ export default function OrderHistory({ user, onLogout }: OrderHistoryProps) {
                       </div>
                       <div>
                         <p className="text-muted-foreground mb-1">Total</p>
-                        <p className="text-foreground">${order.totalPrice.toFixed(2)}</p>
+                        <p className="text-foreground">${Number(order.totalPrice || 0).toFixed(2)}</p>
                       </div>
                     </div>
                     <div>
-                      <span className={`inline-block px-3 py-1 rounded-full ${
-                        order.status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-muted dark:text-foreground' :
+                      <span className={`inline-block px-3 py-1 rounded-full ${order.status === 'Completed' ? 'bg-green-100 text-green-700 dark:bg-muted dark:text-foreground' :
                         order.status === 'Processing' ? 'bg-blue-100 text-blue-700 dark:bg-muted dark:text-foreground' :
-                        'bg-red-100 text-red-700 dark:bg-muted dark:text-foreground'
-                      }`}>
+                          'bg-red-100 text-red-700 dark:bg-muted dark:text-foreground'
+                        }`}>
                         {order.status}
                       </span>
                     </div>
@@ -95,8 +115,8 @@ export default function OrderHistory({ user, onLogout }: OrderHistoryProps) {
                             <td className="px-4 py-3 text-muted-foreground">{item.isbn}</td>
                             <td className="px-4 py-3 text-foreground">{item.title}</td>
                             <td className="px-4 py-3 text-center text-muted-foreground">{item.quantity}</td>
-                            <td className="px-4 py-3 text-right text-muted-foreground">${item.price.toFixed(2)}</td>
-                            <td className="px-4 py-3 text-right text-foreground">${(item.price * item.quantity).toFixed(2)}</td>
+                            <td className="px-4 py-3 text-right text-muted-foreground">${Number(item.price || 0).toFixed(2)}</td>
+                            <td className="px-4 py-3 text-right text-foreground">${(Number(item.price || 0) * item.quantity).toFixed(2)}</td>
                           </tr>
                         ))}
                       </tbody>

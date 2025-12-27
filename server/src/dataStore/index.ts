@@ -8,7 +8,8 @@ import { ShoppingCartDao } from './DAO/shoppingCartDao.js';
 import { CartItemDao } from './DAO/cartItemDao.js';
 import { BlackListedTokensDao } from './DAO/blackListedTokensDao.js';
 import { ReportsDao } from './DAO/reportsDao.js';
-export interface DataStore extends bookDao, CustomerDao, UserDao, adminDao, ShoppingCartDao, CartItemDao, BlackListedTokensDao, ReportsDao {}
+import { CheckoutDao } from './DAO/checkoutDao.js';
+export interface DataStore extends bookDao, CustomerDao, UserDao, adminDao, ShoppingCartDao, CartItemDao, BlackListedTokensDao, ReportsDao, CheckoutDao { }
 
 
 
@@ -18,7 +19,7 @@ export let db: DataStore;
 export let pool: mysql.Pool;
 
 export async function initDb() {
-  
+
   if (process.env.DATABASE_URL) {
     pool = mysql.createPool(process.env.DATABASE_URL);
   } else {

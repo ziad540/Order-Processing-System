@@ -5,7 +5,7 @@ import { User, CartItem } from '../App';
 
 interface ShoppingCartProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   cart: CartItem[];
   updateQuantity: (isbn: string, quantity: number) => void;
   removeItem: (isbn: string) => void;
@@ -14,7 +14,7 @@ interface ShoppingCartProps {
 export default function ShoppingCart({ user, onLogout, cart, updateQuantity, removeItem }: ShoppingCartProps) {
   const navigate = useNavigate();
 
-  const totalPrice = cart.reduce((sum, item) => sum + (item.book.sellingPrice * item.quantity), 0);
+  const totalPrice = cart.reduce((sum, item) => sum + (Number(item.book.sellingPrice || 0) * item.quantity), 0);
 
   const handleCheckout = () => {
     navigate('/customer/checkout');
@@ -54,9 +54,12 @@ export default function ShoppingCart({ user, onLogout, cart, updateQuantity, rem
                     {/* Book Cover */}
                     <div className="w-24 h-32 bg-muted rounded overflow-hidden flex-shrink-0">
                       <img
-                        src={item.book.coverImage}
+                        src={item.book.coverImage?.startsWith('http') ? item.book.coverImage : `http://localhost:3000/${item.book.coverImage}`}
                         alt={item.book.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&h=600&fit=crop';
+                        }}
                       />
                     </div>
 
@@ -89,8 +92,8 @@ export default function ShoppingCart({ user, onLogout, cart, updateQuantity, rem
                         </div>
 
                         <div className="text-right">
-                          <p className="text-muted-foreground mb-1">${item.book.sellingPrice.toFixed(2)} each</p>
-                          <p className="text-foreground">${(item.book.sellingPrice * item.quantity).toFixed(2)}</p>
+                          <p className="text-muted-foreground mb-1">${Number(item.book.sellingPrice || 0).toFixed(2)} each</p>
+                          <p className="text-foreground">${(Number(item.book.sellingPrice || 0) * item.quantity).toFixed(2)}</p>
                         </div>
                       </div>
                     </div>

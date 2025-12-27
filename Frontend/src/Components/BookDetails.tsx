@@ -8,7 +8,7 @@ import { bookService } from '../services/bookService';
 
 interface BookDetailsProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   addToCart: (book: Book, quantity: number) => void;
   cart: CartItem[];
 }

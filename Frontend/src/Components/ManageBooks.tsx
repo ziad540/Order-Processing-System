@@ -6,7 +6,7 @@ import { bookService } from '../services/bookService';
 
 interface ManageBooksProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 export default function ManageBooks({ user, onLogout }: ManageBooksProps) {

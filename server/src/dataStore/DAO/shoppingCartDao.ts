@@ -6,7 +6,7 @@ export interface ShoppingCartDao {
   createCartForUser(userId: number): Promise<ShoppingCart>;
   //addItemToCart(userId: number, isbn: string, quantity: number): Promise<void>;
   removeItemFromCart(userId: number, isbn: string): Promise<void>;
-  updateItemQuantity(userId: number, isbn: string, quantity: number): Promise<void>;
+  updateItemQuantity(cartId: number, isbn: string, quantity: number): Promise<void>;
   clearCart(userId: number): Promise<void>;
   plusoneItemQuantity(userId: number, isbn: string): Promise<void>;
   minusoneItemQuantity(userId: number, isbn: string): Promise<void>;

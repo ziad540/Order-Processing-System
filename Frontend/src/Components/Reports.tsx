@@ -6,7 +6,7 @@ import { reportsService, DashboardStats } from '../services/reportsService';
 
 interface AdminReportsProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 export default function Reports({ user, onLogout }: AdminReportsProps) {

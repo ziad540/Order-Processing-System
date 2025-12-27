@@ -42,17 +42,17 @@ export const getOrderHistory = (db: DataStore) => {
         return res.status(400).json({ error: 'User ID is required' });
       }
       const history = await db.getOrderHistory(userId);
-      
+
       // Group by TransactionID to match frontend structure
       const ordersMap = new Map();
-      
+
       history.forEach((row: any) => {
         if (!ordersMap.has(row.TransactionID)) {
           ordersMap.set(row.TransactionID, {
             orderNumber: row.TransactionID,
             orderDate: row.TransactionDate,
-            totalPrice: row.OrderTotal,
-            status: 'Completed', // View doesn't have status, assuming completed for sales
+            totalPrice: Number(row.OrderTotal),
+            status: 'Completed',
             items: []
           });
         }
@@ -60,7 +60,7 @@ export const getOrderHistory = (db: DataStore) => {
           isbn: row.ISBN,
           title: row.BookTitle,
           quantity: row.Quantity,
-          price: row.PricePerUnit
+          price: Number(row.PricePerUnit)
         });
       });
 

@@ -15,14 +15,14 @@ import { authorizationMiddleware } from "../../middleware/authorziation.middlewa
 export const shoppingCartController = (db: DataStore) => {
     const router = Router();
 
-    router.post("/getCartItemByIsbnandCartId", authMiddleware, authorizationMiddleware("Customer", db), getCartItemByIsbnandCartId(db));
-    router.post("/createCartItem", authMiddleware, authorizationMiddleware("Customer", db), createCartItem(db));
-    router.post("/getallitems", authMiddleware, authorizationMiddleware("Customer", db), getallitems(db));
-    router.post("/removeCartItem", authMiddleware, authorizationMiddleware("Customer", db), removeCartItem(db));
-    router.post("/addoneitem", authMiddleware, authorizationMiddleware("Customer", db), addoneItemQuantity(db));
-    router.post("/minusoneitem", authMiddleware, authorizationMiddleware("Customer", db), minusoneItemQuantity(db));
-    router.post("/updateItemQuantity", authMiddleware, authorizationMiddleware("Customer", db), updateItemQuantity(db));
-    router.delete("/clear", authMiddleware, authorizationMiddleware("Customer", db), clearCart(db));
+    router.post("/getCartItemByIsbnandCartId", authMiddleware(db), authorizationMiddleware("Customer", db), getCartItemByIsbnandCartId(db));
+    router.post("/createCartItem", authMiddleware(db), authorizationMiddleware("Customer", db), createCartItem(db));
+    router.post("/getallitems", authMiddleware(db), authorizationMiddleware("Customer", db), getallitems(db));
+    router.post("/removeCartItem", authMiddleware(db), authorizationMiddleware("Customer", db), removeCartItem(db));
+    router.post("/addoneitem", authMiddleware(db), authorizationMiddleware("Customer", db), addoneItemQuantity(db));
+    router.post("/minusoneitem", authMiddleware(db), authorizationMiddleware("Customer", db), minusoneItemQuantity(db));
+    router.post("/updateItemQuantity", authMiddleware(db), authorizationMiddleware("Customer", db), updateItemQuantity(db));
+    router.delete("/clear", authMiddleware(db), authorizationMiddleware("Customer", db), clearCart(db));
 
     return router;
 

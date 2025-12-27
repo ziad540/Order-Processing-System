@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 
 interface CustomerProfileProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   cart?: CartItem[];
   onUpdateUser: (updates: Partial<User>) => void;
 }

@@ -7,7 +7,7 @@ import { bookService } from '../services/bookService';
 
 interface CustomerHomeProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   addToCart: (book: Book) => void;
   cart: CartItem[];
 }

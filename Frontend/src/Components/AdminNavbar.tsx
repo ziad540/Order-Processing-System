@@ -5,7 +5,7 @@ import ThemeToggle from './ThemeToggle';
 
 interface AdminNavbarProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 export default function AdminNavbar({ user, onLogout }: AdminNavbarProps) {

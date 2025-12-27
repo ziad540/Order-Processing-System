@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 interface AdminDashboardProps {
   user: User;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
@@ -119,7 +119,7 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 mt-8">
           <h2 className="text-foreground mb-6">Books by Category</h2>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {['Science', 'Art', 'Religion', 'History', 'Geography','Fiction','Technology'].map(category => {
+            {['Science', 'Art', 'Religion', 'History', 'Geography', 'Fiction', 'Technology'].map(category => {
               const count = books.filter(book => book.category === category).length;
               const quantity = books
                 .filter(book => book.category === category)
