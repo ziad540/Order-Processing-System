@@ -1,4 +1,4 @@
-import mysql from 'mysql2/promise';
+import mysql from "mysql2/promise";
 import { bookDao } from "./DAO/bookDao.js";
 import { Mysql } from "./mysql.js"; // Import Mysql class
 import { CustomerDao } from './DAO/customerDao.js';
@@ -12,6 +12,7 @@ export interface DataStore extends bookDao , CustomerDao, UserDao, adminDao , Sh
 
   
 }
+
 
 
 
@@ -31,17 +32,17 @@ export async function initDb() {
       database: process.env.DB_NAME,
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0
+      queueLimit: 0,
     });
   }
 
   try {
-    const connection = await pool.getConnection(); 
-    console.log('Connected to MySQL');
+    const connection = await pool.getConnection();
+    console.log("Connected to MySQL");
     connection.release();
     db = new Mysql(); // Initialize db
   } catch (err) {
-    console.error('Failed to connect to MySQL', err);
+    console.error("Failed to connect to MySQL", err);
     throw err;
   }
 }

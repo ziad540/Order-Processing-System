@@ -6,6 +6,9 @@ import { customerController } from "./modules/Customers/customer.controller.js";
 import dotenv from "dotenv";
 import { adminController } from "./modules/Admins/admin.controller.js";
 import { shoppingCartController } from "./modules/ShoppingCart/shoppingcart.controller.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import cors from 'cors';
+
 
 
 (async () => {
@@ -15,8 +18,10 @@ import { shoppingCartController } from "./modules/ShoppingCart/shoppingcart.cont
 
   const app = express(); // 3SHAN NPARSE EL JSON 
   app.use(express.json());
+  app.use('/uploads', express.static('uploads'));
   console.log("Database initialized");
 
+  app.use(cors());
   app.use('/books', bookController(db));
   app.use('/customers', customerController(db));
   app.use('/admins', adminController(db));
@@ -24,10 +29,7 @@ import { shoppingCartController } from "./modules/ShoppingCart/shoppingcart.cont
 
   //  http://localhost:3000/books/create
   // error handling middleware
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!' });
-  });
+  app.use(errorHandler);
 
  
 

@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/ziad540/Order-Processing-System#readme",
   "dependencies": {
+    "@types/multer": "^2.0.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -32,6 +33,8 @@
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.16.0",
     "uuid": "^13.0.0"
+    "multer": "^2.0.2"
+   
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
