@@ -68,6 +68,7 @@ CREATE TABLE Books
     PubID        INT            NOT NULL,
     StockLevel   INT            NOT NULL,
     threshold    INT            NOT NULL,
+    coverImage   LONGTEXT,
     CONSTRAINT fk_book_publisher FOREIGN KEY (PubID) REFERENCES Publishers (PubID)
 );
 

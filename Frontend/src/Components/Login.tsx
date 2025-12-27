@@ -39,34 +39,34 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-background dark:to-background">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className="bg-card text-card-foreground rounded-lg shadow-lg border border-border p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 dark:bg-primary rounded-full mb-4">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-gray-900 mb-2">University Bookstore</h1>
-            <p className="text-gray-600">Order Processing System</p>
+            <h1 className="text-foreground mb-2">University Bookstore</h1>
+            <p className="text-muted-foreground">Order Processing System</p>
           </div>
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-gray-700 mb-2">
+              <label htmlFor="username" className="block text-muted-foreground mb-2">
                 Username
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+                  <User className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Enter your username"
                   required
                 />
@@ -74,19 +74,19 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-muted-foreground mb-2">
                 Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full pl-10 pr-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Enter your password"
                   required
                 />
@@ -95,7 +95,7 @@ export default function Login({ onLogin }: LoginProps) {
 
             <button
               type="submit"
-              className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition-colors"
+              className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 transition-colors"
             >
               Login
             </button>
@@ -103,20 +103,20 @@ export default function Login({ onLogin }: LoginProps) {
 
           {/* Sign Up Link */}
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-indigo-600 hover:text-indigo-700">
+              <Link to="/signup" className="text-indigo-600 hover:text-indigo-700 dark:text-primary dark:hover:text-primary/90">
                 Sign up
               </Link>
             </p>
           </div>
 
           {/* Demo Credentials */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-gray-700 mb-2">Demo Credentials:</p>
+          <div className="mt-8 p-4 bg-muted rounded-lg border border-border">
+            <p className="text-foreground mb-2">Demo Credentials:</p>
             <div className="space-y-1">
-              <p className="text-gray-600">Admin: admin / admin</p>
-              <p className="text-gray-600">Customer: any username / any password</p>
+              <p className="text-muted-foreground">Admin: admin / admin</p>
+              <p className="text-muted-foreground">Customer: any username / any password</p>
             </div>
           </div>
         </div>

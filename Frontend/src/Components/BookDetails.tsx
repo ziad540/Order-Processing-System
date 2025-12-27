@@ -39,7 +39,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-indigo-600 text-xl">Loading...</div>
       </div>
     );
@@ -47,11 +47,11 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
 
   if (!book) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background text-foreground">
         <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="text-center">
-            <h2 className="text-gray-900 mb-2">Book not found</h2>
+            <h2 className="text-foreground mb-2">Book not found</h2>
             <Link to="/customer/home" className="text-indigo-600 hover:text-indigo-700">
               Return to browse
             </Link>
@@ -67,25 +67,25 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground">
       <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Back Button */}
         <button
           onClick={() => navigate('/customer/home')}
-          className="flex items-center space-x-2 text-gray-700 hover:text-indigo-600 mb-6"
+          className="flex items-center space-x-2 text-muted-foreground hover:text-indigo-600 dark:hover:text-primary mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Back to Browse</span>
         </button>
 
         {/* Book Details */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Book Cover */}
             <div className="lg:col-span-1">
-              <div className="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+              <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden">
                 <img
                   src={book.coverImage}
                   alt={book.title}
@@ -97,35 +97,35 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
             {/* Book Information */}
             <div className="lg:col-span-2">
               <div className="mb-6">
-                <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg mb-3">
+                <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 dark:bg-muted dark:text-foreground rounded-lg mb-3">
                   {book.category}
                 </span>
-                <h1 className="text-gray-900 mb-4">{book.title}</h1>
-                <div className="space-y-2 text-gray-600">
+                <h1 className="text-foreground mb-4">{book.title}</h1>
+                <div className="space-y-2 text-muted-foreground">
                   <p>
-                    <span className="text-gray-900">Author(s):</span> {book.authors?.join(', ')}
+                    <span className="text-foreground">Author(s):</span> {book.authors?.join(', ')}
                   </p>
                   <p>
-                    <span className="text-gray-900">Publisher:</span> {book.publisher}
+                    <span className="text-foreground">Publisher:</span> {book.publisher}
                   </p>
                   <p>
-                    <span className="text-gray-900">Publication Year:</span> {book.publicationYear}
+                    <span className="text-foreground">Publication Year:</span> {book.publicationYear}
                   </p>
                   <p>
-                    <span className="text-gray-900">ISBN:</span> {book.ISBN}
+                    <span className="text-foreground">ISBN:</span> {book.ISBN}
                   </p>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-6 mb-6">
-                <h2 className="text-gray-900 mb-4">Pricing & Availability</h2>
+              <div className="border-t border-border pt-6 mb-6">
+                <h2 className="text-foreground mb-4">Pricing & Availability</h2>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-700">Price:</span>
-                    <span className="text-gray-900">${book.sellingPrice.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Price:</span>
+                    <span className="text-foreground">${book.sellingPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-700">Availability:</span>
+                    <span className="text-muted-foreground">Availability:</span>
                     {book.stockLevel > 0 ? (
                       <div className="flex items-center text-green-600">
                         <CheckCircle className="w-5 h-5 mr-2" />
@@ -142,9 +142,9 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
               </div>
 
               {/* Add to Cart Section */}
-              <div className="border-t border-gray-200 pt-6">
+              <div className="border-t border-border pt-6">
                 <div className="flex items-center space-x-4 mb-4">
-                  <label htmlFor="quantity" className="text-gray-700">
+                  <label htmlFor="quantity" className="text-muted-foreground">
                     Quantity:
                   </label>
                   <input
@@ -155,24 +155,24 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
                     value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, Math.min(book.stockLevel, parseInt(e.target.value) || 1)))}
                     disabled={book.stockLevel === 0}
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-24 px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                   />
                 </div>
 
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center justify-between">
                   <button
                     onClick={handleAddToCart}
                     disabled={book.stockLevel === 0}
                     className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-colors ${book.stockLevel > 0
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-primary dark:hover:bg-primary/90'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed'
                       }`}
                   >
                     <ShoppingCart className="w-5 h-5" />
                     <span>Add to Cart</span>
                   </button>
 
-                  <div className="text-gray-900">
+                  <div className="text-foreground">
                     Subtotal: ${(book.sellingPrice * quantity).toFixed(2)}
                   </div>
                 </div>

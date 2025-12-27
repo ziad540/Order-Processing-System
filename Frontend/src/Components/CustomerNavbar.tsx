@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { BookOpen, ShoppingCart, Package, LogOut } from 'lucide-react';
 import { User } from '../App';
 import { CartItem } from '../App';
+import ThemeToggle from './ThemeToggle';
 
 interface CustomerNavbarProps {
   user: User;
@@ -16,15 +17,15 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm">
+    <nav className="bg-background text-foreground border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/customer/home" className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-10 h-10 bg-indigo-600 rounded-lg">
+            <div className="flex items-center justify-center w-10 h-10 bg-indigo-600 dark:bg-primary rounded-lg">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
-            <span className="text-gray-900">University Bookstore</span>
+            <span className="text-foreground">University Bookstore</span>
           </Link>
 
           {/* Navigation */}
@@ -33,8 +34,8 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
               to="/customer/home"
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
                 isActive('/customer/home')
-                  ? 'text-indigo-600 bg-indigo-50'
-                  : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
+                  ? 'text-indigo-600 bg-indigo-50 dark:text-foreground dark:bg-muted'
+                  : 'text-muted-foreground hover:text-indigo-600 hover:bg-muted dark:hover:text-primary'
               }`}
             >
               <BookOpen className="w-5 h-5" />
@@ -45,14 +46,14 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
               to="/customer/cart"
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors relative ${
                 isActive('/customer/cart')
-                  ? 'text-indigo-600 bg-indigo-50'
-                  : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
+                  ? 'text-indigo-600 bg-indigo-50 dark:text-foreground dark:bg-muted'
+                  : 'text-muted-foreground hover:text-indigo-600 hover:bg-muted dark:hover:text-primary'
               }`}
             >
               <ShoppingCart className="w-5 h-5" />
               <span>Cart</span>
               {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-indigo-600 dark:bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {cartItemCount}
                 </span>
               )}
@@ -62,8 +63,8 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
               to="/customer/orders"
               className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
                 isActive('/customer/orders')
-                  ? 'text-indigo-600 bg-indigo-50'
-                  : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50'
+                  ? 'text-indigo-600 bg-indigo-50 dark:text-foreground dark:bg-muted'
+                  : 'text-muted-foreground hover:text-indigo-600 hover:bg-muted dark:hover:text-primary'
               }`}
             >
               <Package className="w-5 h-5" />
@@ -71,15 +72,16 @@ export default function CustomerNavbar({ user, onLogout, cart = [] }: CustomerNa
             </Link>
           </div>
 
-          {/* User Info & Logout */}
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-gray-900">{user.firstName} {user.lastName}</p>
-              <p className="text-gray-500">Customer</p>
+          {/* User Info & Theme & Logout */}
+            <div className="flex items-center space-x-4">
+            <ThemeToggle />
+            <div className="flex flex-col items-end leading-tight">
+              <span className="text-sm font-semibold text-foreground">{user.firstName} {user.lastName}</span>
+              <span className="text-xs font-medium text-muted-foreground">Customer</span>
             </div>
             <button
               onClick={onLogout}
-              className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20 rounded-lg transition-colors"
             >
               <LogOut className="w-5 h-5" />
               <span>Logout</span>
