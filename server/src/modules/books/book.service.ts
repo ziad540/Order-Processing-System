@@ -15,28 +15,46 @@ export const createBook = (db: DataStore) => {
         category,
         stockLevel,
         threshold,
+        PubID,
       }: Book = req.body;
-      console.log(`[BookService] createBook called with ISBN: ${ISBN}, title: ${title}`);
-      if (!ISBN || !title || !publicationYear || !sellingPrice || !category) {
+      
+     
+
+      if (!ISBN || !title || !publicationYear || !sellingPrice || !category || !PubID) {
         return res.status(400).json({
           error: "Please fill all required fields",
         });
+      }
+      const coverImage = req.file ? `uploads/${req.file.filename}` : undefined;
+      console.log(`[BookService] createBook called with ISBN: ${ISBN}, title: ${title}`);
+      console.log(`[BookService] coverImage: ${coverImage}`);
+
+      let parsedAuthors = authors;
+      if (typeof authors === 'string') {
+        try {
+          parsedAuthors = JSON.parse(authors);
+        } catch (e) {
+          // If it's not JSON, treat it as a single author string wrapped in an array or just keep it
+           parsedAuthors = [authors];
+        }
       }
 
       const newBook: Book = {
         ISBN,
         title,
-        authors,
+        authors: parsedAuthors,
         publicationYear,
         sellingPrice,
         category,
         stockLevel,
         threshold,
+        PubID,
+        coverImage,
       };
 
-      // await db.createNEWBook(newBook);
+      await db.createNEWBook(newBook);    
       console.log(`[BookService] Book created successfully: ${newBook.ISBN}`);
-      res.status(200).json({ message: "Book  successfully", book: newBook });
+      res.status(200).json({ message: "Book created successfully", book: newBook });
     } catch (error) {
       console.error(`[BookService] Error in createBook:`, error);
       next(error);

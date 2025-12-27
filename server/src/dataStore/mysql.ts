@@ -11,12 +11,12 @@ export class Mysql implements DataStore {
     const rawAuthors = row.authors || row.Author || row.author || '[]';
     try {
       if (typeof rawAuthors === 'string') {
-        // If it looks like JSON array
+        // If it looks like JSON array (old logic or backup)
         if (rawAuthors.trim().startsWith('[')) {
            authors = JSON.parse(rawAuthors);
         } else {
-           // Assume comma separated or single author
-           authors = [rawAuthors]; 
+           // If it came from GROUP_CONCAT, it is comma separated
+           authors = rawAuthors.split(',').map(a => a.trim());
         }
       } else if (Array.isArray(rawAuthors)) {
         authors = rawAuthors;
@@ -46,29 +46,30 @@ export class Mysql implements DataStore {
     const finalLimit = Number(pagination.limit);
     const finalOffset = Number(pagination.offset);
 
-    let query = "SELECT * FROM books WHERE 1=1";
-    let countQuery = "SELECT COUNT(*) as total FROM books WHERE 1=1";
+    let query = "SELECT books.*, GROUP_CONCAT(Authors.AuthorName) as authors FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN WHERE 1=1";
+    let countQuery = "SELECT COUNT(DISTINCT books.ISBN) as total FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN WHERE 1=1";
     const params: any[] = [];
 
     if (filter.title) {
-      query += " AND title LIKE ?";
-      countQuery += " AND title LIKE ?";
+      query += " AND books.title LIKE ?";
+      countQuery += " AND books.title LIKE ?";
       params.push(`%${filter.title}%`);
     }
 
     if (filter.category && filter.category.length > 0) {
       const placeholders = filter.category.map(() => "?").join(", ");
-      query += ` AND category IN (${placeholders})`;
-      countQuery += ` AND category IN (${placeholders})`;
+      query += ` AND books.category IN (${placeholders})`;
+      countQuery += ` AND books.category IN (${placeholders})`;
       params.push(...filter.category);
     }
 
-    // Note: Assuming 'authors' column holds JSON array, standard LIKE might not be perfect but acceptable for simple search
     if (filter.author) {
-      query += " AND authors LIKE ?"; 
-      countQuery += " AND authors LIKE ?";
+      query += " AND Authors.AuthorName LIKE ?"; 
+      countQuery += " AND Authors.AuthorName LIKE ?";
       params.push(`%${filter.author}%`);
     }
+
+    query += " GROUP BY books.ISBN";
 
     console.log(`[Mysql] searchBook query: ${query}`);
 
@@ -126,7 +127,7 @@ export class Mysql implements DataStore {
 
   async getBookByISBN(ISBN: string): Promise<Book | null> {
     const [rows] = await pool.execute<RowDataPacket[]>(
-      "SELECT * FROM books WHERE ISBN = ?",
+      "SELECT books.*, GROUP_CONCAT(Authors.AuthorName) as authors FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN WHERE books.ISBN = ? GROUP BY books.ISBN",
       [ISBN]
     );
     if (rows.length === 0) return null;
@@ -149,7 +150,7 @@ export class Mysql implements DataStore {
       try {
         const [rowsResult, countResult] = await Promise.all([
           pool.query<RowDataPacket[]>(
-            "SELECT * FROM books LIMIT ? OFFSET ?",
+            "SELECT books.*, GROUP_CONCAT(Authors.AuthorName) as authors FROM books LEFT JOIN Authors ON books.ISBN = Authors.BookISBN GROUP BY books.ISBN LIMIT ? OFFSET ?",
             [finalLimit, finalOffset]
           ),
           pool.query<RowDataPacket[]>("SELECT COUNT(*) as total FROM books"),
@@ -179,20 +180,49 @@ export class Mysql implements DataStore {
       sellingPrice,
       category,
       stockLevel,
+      threshold,
+      PubID,
+      coverImage,
     } = book;
 
-    const [result] = await pool.execute<ResultSetHeader>(
-      "INSERT INTO books (ISBN, title, authors, publicationYear, sellingPrice, category, stockLevel) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [
-        ISBN,
-        title,
-        JSON.stringify(authors),
-        publicationYear,
-        sellingPrice,
-        category,
-        stockLevel,
-      ]
-    );
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      await connection.execute(
+        "INSERT INTO books (ISBN, title, Pub_Year, sellingPrice, category, stockLevel, threshold, PubID, coverImage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          ISBN,
+          title,
+          publicationYear,
+          sellingPrice,
+          category,
+          stockLevel,
+          threshold ?? 10,
+          PubID,
+          coverImage || null
+        ]
+      );
+
+      if (authors && Array.isArray(authors) && authors.length > 0) {
+        for (const author of authors) {
+          await connection.execute(
+            "INSERT INTO Authors (AuthorName, BookISBN) VALUES (?, ?)",
+            [author, ISBN]
+          );
+        }
+      }
+
+      await connection.commit();
+    } catch (error: any) {
+      await connection.rollback();
+      if (error.errno === 1452) {
+        throw new Error("Foreign Key Constraint: PubID not found");
+      }
+      throw error;
+    } finally {
+      connection.release();
+    }
 
     return book;
   }

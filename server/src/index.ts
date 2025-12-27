@@ -11,6 +11,7 @@ import cors from 'cors';
   await initDb();
   const app = express();
   app.use(express.json());
+  app.use('/uploads', express.static('uploads'));
   console.log("Database initialized");
 
   app.use(cors());

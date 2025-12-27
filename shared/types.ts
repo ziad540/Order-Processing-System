@@ -8,6 +8,7 @@ export interface Book {
     category: string;
     stockLevel: number;
     threshold?: number;
+    PubID?: number;
     coverImage?: string;
 }
 
