@@ -66,6 +66,20 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
     navigate('/customer/cart');
   };
 
+  const getCategoryStyle = (category: string) => {
+    switch (category) {
+      case 'Science': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'Technology': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
+      case 'Fiction': return 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300';
+      case 'History': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+      case 'Geography': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+      case 'Art': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300';
+      case 'Religion': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
+      case 'Sci-Fi': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <CustomerNavbar user={user} onLogout={onLogout} cart={cart} />
@@ -100,7 +114,7 @@ export default function BookDetails({ user, onLogout, addToCart, cart }: BookDet
             {/* Book Information */}
             <div className="lg:col-span-2">
               <div className="mb-6">
-                <span className="inline-block px-3 py-1 bg-secondary text-secondary-foreground rounded-lg mb-3">
+                <span className={`inline-block px-3 py-1 rounded-lg mb-3 text-sm font-medium ${getCategoryStyle(book.category)}`}>
                   {book.category}
                 </span>
                 <h1 className="text-foreground mb-4">{book.title}</h1>

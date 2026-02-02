@@ -650,7 +650,7 @@ export class Mysql implements DataStore {
 
   async updateBookByISBN(
     ISBN: string,
-    updates: { sellingPrice?: number; stockLevel?: number; threshold?: number }
+    updates: { sellingPrice?: number; stockLevel?: number; threshold?: number; coverImage?: string | null }
   ): Promise<string | null> {
     const fields: string[] = [];
     const values: any[] = [];
@@ -666,6 +666,10 @@ export class Mysql implements DataStore {
     if (updates.threshold !== undefined) {
       fields.push("threshold = ?");
       values.push(updates.threshold);
+    }
+    if (updates.coverImage !== undefined) {
+      fields.push("coverImage = ?");
+      values.push(updates.coverImage);
     }
 
     if (fields.length === 0) {

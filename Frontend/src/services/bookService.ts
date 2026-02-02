@@ -8,16 +8,16 @@ export const bookService = {
   searchBooks: async (query: string, category: string): Promise<Book[]> => {
     try {
       const isSearch = query.trim() !== '' || category !== 'All';
-      
+
       let url = `${API_URL}/list`;
       let params = { limit: 1000 };
-      
+
       if (isSearch) {
         url = `${API_URL}/search`;
         const payload: any = {};
         if (query.trim() !== '') payload.title = query;
         if (category !== 'All') payload.category = [category];
-        
+
         const response = await axios.post(url, payload, { params });
         console.log('API Response (Search/List):', response.data);
         return response.data.data || [];
@@ -29,7 +29,7 @@ export const bookService = {
 
     } catch (error: any) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
-          return [];
+        return [];
       }
       console.error('Error fetching books:', error);
       return [];
@@ -53,10 +53,10 @@ export const bookService = {
     try {
       const authHeaders = getAuthHeaders();
       const contentHeaders = book instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
-      const response = await axios.post(`${API_URL}/create`, book, { 
+      const response = await axios.post(`${API_URL}/create`, book, {
         headers: {
-            ...contentHeaders,
-            ...authHeaders
+          ...contentHeaders,
+          ...authHeaders
         }
       });
       return response.data;
@@ -66,10 +66,16 @@ export const bookService = {
     }
   },
 
-  updateBook: async (isbn: string, updates: Partial<Book>): Promise<void> => {
+  updateBook: async (isbn: string, updates: Partial<Book> | FormData): Promise<void> => {
     try {
-      const headers = getAuthHeaders();
-      await axios.put(`${API_URL}/update/${isbn}`, updates, { headers });
+      const authHeaders = getAuthHeaders();
+      const contentHeaders = updates instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      await axios.put(`${API_URL}/update/${isbn}`, updates, {
+        headers: {
+          ...contentHeaders,
+          ...authHeaders
+        }
+      });
     } catch (error) {
       console.error(`Error updating book with ISBN ${isbn}:`, error);
       throw error;

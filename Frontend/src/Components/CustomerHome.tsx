@@ -18,7 +18,7 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
   const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const categories = ['All', 'Science', 'Technology', 'Fiction', 'History', 'Geography', 'Art'];
+  const categories = ['All', 'Science', 'Technology', 'Fiction', 'History', 'Geography', 'Art', 'Religion', 'Sci-Fi'];
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -36,6 +36,20 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
     const debounceTimer = setTimeout(fetchBooks, 300);
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, selectedCategory]);
+
+  const getCategoryStyle = (category: string) => {
+    switch (category) {
+      case 'Science': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'Technology': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
+      case 'Fiction': return 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300';
+      case 'History': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+      case 'Geography': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+      case 'Art': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300';
+      case 'Religion': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
+      case 'Sci-Fi': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300';
+    }
+  };
 
   const handleAddToCart = (book: Book) => {
     addToCart(book);
@@ -125,7 +139,7 @@ export default function CustomerHome({ user, onLogout, addToCart, cart }: Custom
                 <p className="text-muted-foreground mb-2">{book.publisher}</p>
 
                 <div className="flex items-center justify-between mb-3">
-                  <span className="inline-block px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getCategoryStyle(book.category)}`}>
                     {book.category}
                   </span>
                   <span className="text-muted-foreground">ISBN: {book.ISBN ? book.ISBN.slice(-6) : 'N/A'}</span>

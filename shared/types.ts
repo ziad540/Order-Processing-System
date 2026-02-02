@@ -9,7 +9,7 @@ export interface Book {
   stockLevel: number;
   threshold?: number;
   PubID?: number;
-  coverImage?: string;
+  coverImage?: string | null;
 }
 
 export interface BookFilter {

@@ -10,7 +10,7 @@ export const bookController = (db: DataStore) => {
     router.post("/search", searchBooks(db));
     router.post("/create", upload.single('coverImage'), createBook(db));
     router.get("/list", listAllBooks(db));
-    router.put("/update/:isbn", updateBookByISBN(db));
+    router.put("/update/:isbn", upload.single('coverImage'), updateBookByISBN(db));
     router.get("/:isbn", getBookByISBN(db));
 
 

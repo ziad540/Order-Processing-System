@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit2, Search, AlertCircle } from 'lucide-react';
 import AdminNavbar from './AdminNavbar';
 import { User, Book } from '../App';
@@ -11,6 +11,7 @@ interface ManageBooksProps {
 
 export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +41,28 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
       console.error('Failed to fetch books:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const getCategoryStyle = (category: string) => {
+    switch (category) {
+      case 'Science': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+      case 'Technology': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
+      case 'Fiction': return 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300';
+      case 'History': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+      case 'Geography': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+      case 'Art': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300';
+      case 'Religion': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
+      case 'Sci-Fi': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300';
     }
   };
 
@@ -99,7 +122,15 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
         return;
       }
       setSelectedFile(file);
-      // Optional: still show preview if desired, but prioritize file
+
+      // Cleanup old preview URL if any
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+
       setFormData((prev: any) => ({ ...prev, coverImage: file.name }));
     }
   };
@@ -183,31 +214,60 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
     setEditingBook(book);
     setFormData({
       sellingPrice: book.sellingPrice,
-      stockLevel: book.stockLevel
+      stockLevel: book.stockLevel,
+      threshold: book.threshold || 10,
+      coverImage: book.coverImage
     });
+    setSelectedFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
   };
 
   const handleUpdateBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingBook) {
       try {
-        if ((formData as any).sellingPrice === '' || (formData as any).stockLevel === '') {
-          setError('Please enter valid numbers for Price and Stock.');
+        if (
+          (formData as any).sellingPrice === '' ||
+          (formData as any).stockLevel === '' ||
+          (formData as any).threshold === ''
+        ) {
+          setError('Please enter valid numbers for Price, Stock, and Threshold.');
           return;
         }
 
         const sellingPrice = Number((formData as any).sellingPrice);
         const stockLevel = Number((formData as any).stockLevel);
+        const threshold = Number((formData as any).threshold);
 
-        if (!Number.isFinite(sellingPrice) || !Number.isFinite(stockLevel)) {
-          setError('Please enter valid numbers for Price and Stock.');
+        if (
+          !Number.isFinite(sellingPrice) ||
+          !Number.isFinite(stockLevel) ||
+          !Number.isFinite(threshold)
+        ) {
+          setError('Please enter valid numbers for Price, Stock, and Threshold.');
           return;
         }
 
-        await bookService.updateBook(editingBook.ISBN, {
-          sellingPrice,
-          stockLevel
-        });
+        const data = new FormData();
+        data.append('sellingPrice', String(sellingPrice));
+        data.append('stockLevel', String(stockLevel));
+        data.append('threshold', String(threshold));
+
+        if (selectedFile) {
+          data.append('coverImage', selectedFile);
+        }
+
+        // We'll use a local variable or check if user specifically wants to delete
+        // For simplicity, let's assume if they clicked a 'Remove' button we'd set a flag.
+        // Let's add that to formData.
+        if ((formData as any).deleteCoverImage) {
+          data.append('deleteCoverImage', 'true');
+        }
+
+        await bookService.updateBook(editingBook.ISBN, data);
         await fetchBooks(); // Refresh list
         setEditingBook(null);
         resetForm();
@@ -220,6 +280,10 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
 
   const resetForm = () => {
     setSelectedFile(null);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
     setFormData({
       ISBN: '',
       title: '',
@@ -384,7 +448,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                       <input
                         type="text"
                         name="coverImage"
-                        value={formData.coverImage}
+                        value={formData.coverImage || ''}
                         onChange={handleInputChange}
                         placeholder="Image URL"
                         className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
@@ -463,6 +527,62 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     step="1"
                   />
                 </div>
+                <div>
+                  <label className="block text-muted-foreground mb-2">Threshold Value *</label>
+                  <input
+                    type="number"
+                    name="threshold"
+                    value={(formData as any).threshold ?? ''}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-border bg-background text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                    required
+                    min="0"
+                    step="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-muted-foreground mb-2">Cover Image</label>
+                  <div className="space-y-3">
+                    {formData.coverImage && !(formData as any).deleteCoverImage && (
+                      <div className="relative w-24 h-32 rounded-lg overflow-hidden border border-border group">
+                        <img
+                          src={previewUrl || (formData.coverImage?.startsWith('http') ? formData.coverImage : `http://localhost:3000/${formData.coverImage}`)}
+                          alt="Current cover"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormData((prev: any) => ({ ...prev, deleteCoverImage: true }))}
+                          className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-xs font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                    {(formData as any).deleteCoverImage && (
+                      <div className="flex items-center space-x-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg border border-amber-200 dark:border-amber-900/30">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Image marked for deletion</span>
+                        <button
+                          type="button"
+                          onClick={() => setFormData((prev: any) => ({ ...prev, deleteCoverImage: false }))}
+                          className="text-xs underline ml-auto"
+                        >
+                          Undo
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-muted-foreground">Upload new:</span>
+                      <input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={handleImageUpload}
+                        className="text-sm text-muted-foreground file:mr-4 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-muted file:text-foreground hover:file:bg-muted/80"
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 {error && (
                   <div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -533,7 +653,7 @@ export default function ManageBooks({ user, onLogout }: ManageBooksProps) {
                     <td className="px-6 py-4 text-muted-foreground">{book.authors?.join(', ')}</td>
                     <td className="px-6 py-4 text-muted-foreground">{book.publisher}</td>
                     <td className="px-6 py-4">
-                      <span className="inline-block px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getCategoryStyle(book.category)}`}>
                         {book.category}
                       </span>
                     </td>

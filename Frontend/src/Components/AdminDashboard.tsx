@@ -118,8 +118,8 @@ export default function AdminDashboard({ user, onLogout }: AdminDashboardProps) 
         {/* Category Distribution */}
         <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border p-6 mt-8">
           <h2 className="text-foreground mb-6">Books by Category</h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {['Science', 'Art', 'Religion', 'History', 'Geography', 'Fiction', 'Technology'].map(category => {
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {['Science', 'Art', 'Religion', 'History', 'Geography', 'Fiction', 'Technology', 'Sci-Fi'].map(category => {
               const count = books.filter(book => book.category === category).length;
               const quantity = books
                 .filter(book => book.category === category)

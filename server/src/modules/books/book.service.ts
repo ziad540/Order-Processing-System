@@ -2,6 +2,8 @@ import { DataStore } from "../../dataStore/index.js";
 import { Book, BookFilter } from "../../../../shared/types.js";
 import { NextFunction, Request, Response } from "express";
 import { calculatePagination } from "../../utlis/pagination.utlis.js";
+import fs from "fs";
+import path from "path";
 
 export const createBook = (db: DataStore) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -143,18 +145,60 @@ export const getBookByISBN = (db: DataStore) => {
 export const updateBookByISBN = (db: DataStore) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { sellingPrice, stockLevel, threshold } = req.body;
-      if (sellingPrice < 0 || stockLevel < 0 || threshold < 0) {
-        return res.status(400).json({ message: "Invalid values for sellingPrice, stockLevel, or threshold" });
-      }
+      const { sellingPrice, stockLevel, threshold, deleteCoverImage } = req.body;
       const { isbn: ISBN } = req.params;
       console.log(`[BookService] updateBookByISBN called with ISBN: ${ISBN}, updates:`, req.body);
+      console.log(`[BookService] req.file:`, req.file);
 
       if (!ISBN) {
         return res.status(400).json({ message: "ISBN parameter is required" });
       }
 
-      const result = await db.updateBookByISBN(ISBN, { sellingPrice, stockLevel, threshold });
+      // 1. Fetch existing book to check for old image
+      const existingBook = await db.getBookByISBN(ISBN);
+      if (!existingBook) {
+        console.warn(`[BookService] Book not found for ISBN: ${ISBN}`);
+        return res.status(404).json({ message: "Book not found" });
+      }
+
+      let coverImage = existingBook.coverImage;
+
+      // 2. Handle Image Deletion or New Upload
+      if (deleteCoverImage === 'true' || deleteCoverImage === true) {
+        // Delete old file if it exists and is not a default URL
+        if (existingBook.coverImage && existingBook.coverImage.startsWith('uploads/')) {
+          const oldPath = path.join(process.cwd(), existingBook.coverImage);
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+            console.log(`[BookService] Deleted old cover image: ${oldPath}`);
+          }
+        }
+        coverImage = null; // Set to null in DB
+      }
+
+      if (req.file) {
+        // If a new file is uploaded, delete the old one first (if not already deleted by the flag)
+        if (existingBook.coverImage && existingBook.coverImage.startsWith('uploads/') && coverImage !== null) {
+          const oldPath = path.join(process.cwd(), existingBook.coverImage);
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+            console.log(`[BookService] Deleted old cover image before upload: ${oldPath}`);
+          }
+        }
+        coverImage = `uploads/${req.file.filename}`;
+      }
+
+      const updates: any = {};
+      if (sellingPrice !== undefined) updates.sellingPrice = Number(sellingPrice);
+      if (stockLevel !== undefined) updates.stockLevel = Number(stockLevel);
+      if (threshold !== undefined) updates.threshold = Number(threshold);
+      if (coverImage !== undefined) updates.coverImage = coverImage;
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid updates provided" });
+      }
+
+      const result = await db.updateBookByISBN(ISBN, updates);
 
       if (!result) {
         console.warn(`[BookService] Failed to update. Book not found for ISBN: ${ISBN}`);

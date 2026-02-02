@@ -1,0 +1,24 @@
+Node.js >= 18.0.0
+npm >= 9.0.0
+MySQL Server >= 8.0
+TypeScript >= 5.0
+
+# Backend Dependencies (server/package.json)
+express
+mysql2
+bcrypt
+jsonwebtoken
+multer
+zod
+uuid
+cors
+dotenv
+
+# Frontend Dependencies (Frontend/package.json)
+react >= 19.0
+vite
+tailwindcss >= 4.0
+axios
+lucide-react
+react-router-dom
+bootstrap
